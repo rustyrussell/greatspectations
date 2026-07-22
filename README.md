@@ -58,6 +58,11 @@ pattern = "bip-{id:04d}.mediawiki"
 [sources.cmdata-spec]
 format = "markdown"
 file = "SPECIFICATION.md"
+
+[sources.rfc]
+format = "rfc-text"
+dir = "/usr/share/doc/RFC/standard"
+pattern = "rfc{id}.txt.gz"
 ```
 
 `spectate` doesn't fetch anything -- point `dir`/`file` at a checkout or
@@ -66,14 +71,34 @@ doc-rfc-std`, or a spec file that lives in your own repo).
 
 Each `[sources.NAME]` table is:
 
-- `format` -- which parser splits the document into sections: currently
-  `markdown` (splits on `#`-prefixed headers -- BOLT files and
-  single-file specs like `SPECIFICATION.md` both use this) or
-  `mediawiki` (splits on `==Header==` lines, as used by
-  `bitcoin/bips`).
-- `dir` + `pattern` -- for a source with one file per id (BOLT, BIP):
-  `pattern` is a glob template with an `{id}` placeholder, e.g.
-  `"{id:02d}-*.md"` or `"bip-{id:04d}.mediawiki"`.
+- `format` -- which parser splits the document into sections:
+  - `markdown` -- splits on `#`-prefixed headers. BOLT files and
+    single-file specs like `SPECIFICATION.md` both use this.
+  - `mediawiki` -- splits on `==Header==` lines, as used by
+    `bitcoin/bips`.
+  - `rfc-text` -- the classic RFC-editor plaintext layout, as shipped by
+    Debian's `doc-rfc-std` package (`/usr/share/doc/RFC/<category>/
+    rfcNNNN.txt.gz`). Transparently gunzips `.gz` files, strips page
+    headers/footers and form-feed page breaks so a requirement split
+    across a page boundary still reads as one section, and splits on
+    column-0 `N.`/`N.N.` numbered headers -- while ignoring the table of
+    contents, whose entries have the same shape but end in a
+    right-aligned page number (space- or dot-leader-padded), which a
+    real header never does. `doc-rfc-std` splits RFCs across category
+    subdirectories (`standard/`, `draft-standard/`, ...); point `dir`
+    at the single category you need, as in the example above. A
+    recursive `pattern` like `"**/rfc{id}.txt.gz"` also works if your
+    RFCs span categories, but `doc-rfc-std` additionally ships a
+    `links/` directory that symlinks every RFC into one flat directory
+    regardless of category, so a recursive pattern matches both the
+    symlink and the real file for the same id and `spectate` refuses
+    the ambiguity (`glob.glob` has no way to exclude a subdirectory by
+    name). If you need multiple categories, glob each one explicitly
+    with a separate `[sources.NAME]` table instead.
+- `dir` + `pattern` -- for a source with one file per id (BOLT, BIP,
+  RFC): `pattern` is a glob template with an `{id}` placeholder, e.g.
+  `"{id:02d}-*.md"`, `"bip-{id:04d}.mediawiki"`, or
+  `"rfc{id}.txt.gz"`.
 - `file` -- for a source that's a single fixed document (no id needed),
   e.g. a spec that lives directly in your repo.
 - `comment_marker` (optional) -- the literal word that opens a quote

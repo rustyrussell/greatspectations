@@ -11,3 +11,8 @@ pattern = "bip-{id:04d}.mediawiki"
 [sources.cmdata-spec]
 format = "markdown"
 file = "cmdata-spec-style/SPECIFICATION.md"
+
+[sources.rfc]
+format = "rfc-text"
+dir = "rfc-style"
+pattern = "**/rfc{id}.txt.gz"

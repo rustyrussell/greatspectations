@@ -52,3 +52,4 @@ def load(format_name: str, path: str) -> Document:
 # Importing submodules registers their loaders.
 from greatspectations.formats import markdown  # noqa: E402,F401
 from greatspectations.formats import mediawiki  # noqa: E402,F401
+from greatspectations.formats import rfc_text  # noqa: E402,F401

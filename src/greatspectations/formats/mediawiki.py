@@ -5,7 +5,7 @@ style lines, as used by the bitcoin/bips repository.
 import re
 
 from greatspectations.formats import Document, register
-from greatspectations.formats._common import split_on_headers
+from greatspectations.formats._common import read_lines, split_on_headers
 
 _HEADER_RE = re.compile(r"^(=+)\s*.+?\s*\1\s*$")
 
@@ -15,7 +15,7 @@ def _is_header(line: str) -> bool:
 
 
 def load(path: str) -> Document:
-    return split_on_headers(path, _is_header)
+    return split_on_headers(path, read_lines(path), _is_header)
 
 
 register("mediawiki", load)

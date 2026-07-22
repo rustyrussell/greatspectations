@@ -27,7 +27,13 @@ class Source:
         return self.dir is not None
 
     def resolve(self, id: Optional[IdType] = None) -> str:
-        """Return the filesystem path to the document for this source."""
+        """Return the filesystem path to the document for this source.
+
+        pattern is globbed relative to dir with recursive=True, so a
+        pattern may use '**' to search subdirectories -- e.g. RFCs
+        distributed split across category subdirectories (standard/,
+        draft-standard/, ...) can use "**/rfc{id}.txt.gz".
+        """
         if self.file is not None:
             if id is not None:
                 raise ConfigError(
@@ -52,7 +58,9 @@ class Source:
                 )
             ) from e
 
-        matches = sorted(glob.glob(os.path.join(self.dir, glob_pattern)))
+        matches = sorted(
+            glob.glob(os.path.join(self.dir, glob_pattern), recursive=True)
+        )
         if len(matches) == 0:
             raise ConfigError(
                 "source '{}': no file matching {!r} in {!r}".format(

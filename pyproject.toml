@@ -23,3 +23,8 @@ testpaths = ["tests"]
 [tool.mypy]
 files = ["src/greatspectations"]
 python_version = "3.11"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

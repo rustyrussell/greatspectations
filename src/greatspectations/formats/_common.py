@@ -3,7 +3,7 @@ single header lines (markdown '#...', mediawiki '==...==', etc).
 """
 
 import re
-from typing import Callable, List, Tuple
+from typing import Callable, Iterable, List, Tuple
 
 from greatspectations.formats import Document, Section
 
@@ -54,18 +54,32 @@ def raw_with_linemap(raw_lines: List[Tuple[int, str]]) -> Tuple[str, List[int]]:
     return "".join(chunks), linemap
 
 
-def split_on_headers(path: str, is_header: Callable[[str], bool]) -> Document:
-    """Load path and split it into sections wherever is_header(line) is
-    true; the header line itself belongs to the section it introduces.
-    """
+def read_lines(path: str) -> List[Tuple[int, str]]:
+    """Read a plain-text file into (lineno, text) pairs, 1-indexed."""
     with open(path, encoding="utf-8") as f:
-        raw = list(enumerate(f.readlines(), 1))
+        return list(enumerate(f.readlines(), 1))
 
+
+def split_on_headers(
+    path: str,
+    lines: Iterable[Tuple[int, str]],
+    is_header: Callable[[str], bool],
+) -> Document:
+    """Split lines into sections wherever is_header(line) is true; the
+    header line itself belongs to the section it introduces.
+
+    lines is (lineno, text) pairs already read (and, for formats that
+    need it, decoded/preprocessed) by the caller -- lineno should be the
+    real original line number, even if some lines were dropped before
+    calling this (e.g. RFC page headers/footers), so linemaps stay
+    accurate. path is recorded on the returned Document but not read
+    here.
+    """
     raw_sections: List[List[Tuple[int, str]]] = []
     headers: List[str] = []
     cur: List[Tuple[int, str]] = []
     cur_header = ""
-    for lineno, line in raw:
+    for lineno, line in lines:
         if is_header(line):
             raw_sections.append(cur)
             headers.append(cur_header)

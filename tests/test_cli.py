@@ -52,6 +52,45 @@ def test_check_bip_success(tmp_path):
     assert result.returncode == 0, result.stderr
 
 
+def test_check_rfc_success(tmp_path):
+    source = write_source(
+        tmp_path, "example.c",
+        "# RFC #9999: A verifier MUST reject a packet whose checksum does "
+        "not match.\n",
+    )
+    result = run_spectate(["check", "--config", CONFIG, source])
+    assert result.returncode == 0, result.stderr
+
+
+def test_check_rfc_failure(tmp_path):
+    source = write_source(
+        tmp_path, "example.c",
+        "# RFC #9999: this text does not appear in the RFC\n",
+    )
+    result = run_spectate(["check", "--config", CONFIG, source])
+    assert result.returncode == 1
+    assert "example.c:1:cannot find match" in result.stderr
+
+
+def test_check_rfc_coverage_roundtrip(tmp_path):
+    source = write_source(
+        tmp_path, "example.c",
+        "# RFC #9999: A verifier MUST reject a packet whose checksum does "
+        "not match.\n",
+    )
+    coverage_path = tmp_path / "coverage.txt"
+    check_result = run_spectate(
+        ["check", "--config", CONFIG, "--coverage", str(coverage_path), source]
+    )
+    assert check_result.returncode == 0, check_result.stderr
+
+    result = run_spectate(
+        ["coverage", "--config", CONFIG, "--coverage", str(coverage_path), "--source", "rfc:9999"]
+    )
+    assert result.returncode == 0
+    assert result.stdout == ""
+
+
 def test_check_cmdata_spec_section_hints_avoid_cross_match(tmp_path):
     source = write_source(
         tmp_path, "example.c",

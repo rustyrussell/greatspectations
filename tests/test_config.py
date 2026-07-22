@@ -200,6 +200,31 @@ def test_resolve_dir_source_by_id(tmp_path):
     assert config["bolt"].resolve(2) == str(boltdir / "02-peer-protocol.md")
 
 
+def test_resolve_dir_source_recursive_pattern(tmp_path):
+    # Mirrors doc-rfc-std's layout: RFCs split across category
+    # subdirectories under one top-level dir.
+    rfcdir = tmp_path / "RFC"
+    (rfcdir / "standard").mkdir(parents=True)
+    (rfcdir / "draft-standard").mkdir(parents=True)
+    (rfcdir / "standard" / "rfc1002.txt.gz").write_text("standard")
+    (rfcdir / "draft-standard" / "rfc5322.txt.gz").write_text("draft")
+
+    path = write_config(
+        tmp_path,
+        """
+        [sources.rfc]
+        format = "markdown"
+        dir = "RFC"
+        pattern = "**/rfc{id}.txt.gz"
+        """,
+    )
+    config = load(path)
+    assert config["rfc"].resolve(1002) == str(rfcdir / "standard" / "rfc1002.txt.gz")
+    assert config["rfc"].resolve(5322) == str(
+        rfcdir / "draft-standard" / "rfc5322.txt.gz"
+    )
+
+
 def test_resolve_dir_source_requires_id(tmp_path):
     boltdir = tmp_path / "lightning-rfc"
     boltdir.mkdir()
