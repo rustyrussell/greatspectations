@@ -109,3 +109,67 @@ def test_unknown_format_raises(tmp_path):
     path.write_text("# Hi\n")
     with pytest.raises(ValueError, match="unknown format"):
         formats.load("nonexistent-format", str(path))
+
+
+BIP_STYLE = """<pre>
+  BIP: 340
+  Title: Schnorr Signatures
+</pre>
+
+==Abstract==
+
+This document proposes a standard for 64-byte Schnorr signatures.
+
+==Specification==
+
+A signer MUST use a 32-byte private key.
+
+==Rationale==
+
+Blah   blah    spans
+multiple lines.
+"""
+
+
+def test_mediawiki_load_splits_on_headers(tmp_path):
+    path = tmp_path / "bip-0340.mediawiki"
+    path.write_text(BIP_STYLE)
+
+    doc = formats.load("mediawiki", str(path))
+    headers = [s.header for s in doc.sections]
+    assert headers[0] == ""  # preamble (the <pre> preface block)
+    assert "==Abstract==" in headers
+    assert "==Specification==" in headers
+    assert "==Rationale==" in headers
+
+
+def test_mediawiki_collapses_whitespace(tmp_path):
+    path = tmp_path / "bip-0340.mediawiki"
+    path.write_text(BIP_STYLE)
+
+    doc = formats.load("mediawiki", str(path))
+    headers = [s.header for s in doc.sections]
+    rationale = doc.sections[headers.index("==Rationale==")].text
+    assert "Blah blah spans multiple lines." in rationale
+
+
+def test_mediawiki_linemap_tracks_original_lines(tmp_path):
+    path = tmp_path / "bip-0340.mediawiki"
+    path.write_text(BIP_STYLE)
+
+    doc = formats.load("mediawiki", str(path))
+    headers = [s.header for s in doc.sections]
+    spec_section = doc.sections[headers.index("==Specification==")]
+    idx = spec_section.text.index("MUST use")
+    original_lineno = spec_section.linemap[idx]
+    original_line = path.read_text().splitlines()[original_lineno - 1]
+    assert "MUST use" in original_line
+
+
+def test_mediawiki_does_not_match_markdown_headers(tmp_path):
+    path = tmp_path / "bip.mediawiki"
+    path.write_text("# not a mediawiki header\n\n==Real Header==\ntext\n")
+
+    doc = formats.load("mediawiki", str(path))
+    headers = [s.header for s in doc.sections]
+    assert headers == ["", "==Real Header=="]
