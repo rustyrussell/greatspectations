@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "greatspectations"
+version = "0.1.0"
+description = "Check that spec quotes in source comments match the spec"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "Rusty Russell" }]
+
+[project.scripts]
+spectate = "greatspectations.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+files = ["src/greatspectations"]
+python_version = "3.11"
