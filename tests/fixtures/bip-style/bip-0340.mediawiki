@@ -1,0 +1,13 @@
+<pre>
+  BIP: 340
+  Title: Schnorr Signatures for secp256k1
+</pre>
+
+==Abstract==
+
+This document proposes a standard for 64-byte Schnorr signatures.
+
+==Specification==
+
+A signer MUST use a 32-byte private key.
+A verifier MUST reject signatures with an invalid public key.

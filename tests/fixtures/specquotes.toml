@@ -1,0 +1,13 @@
+[sources.bolt]
+format = "markdown"
+dir = "bolt-style"
+pattern = "{id:02d}-*.md"
+
+[sources.bip]
+format = "mediawiki"
+dir = "bip-style"
+pattern = "bip-{id:04d}.mediawiki"
+
+[sources.cmdata-spec]
+format = "markdown"
+file = "cmdata-spec-style/SPECIFICATION.md"
