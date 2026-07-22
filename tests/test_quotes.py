@@ -202,6 +202,50 @@ def test_c_style_block_comment():
     assert quotes[0].text == "A writer: - MUST set foo."
 
 
+def test_comment_aside_dropped_from_quote():
+    config = make_config([bolt_source()])
+    text = "\n".join([
+        "# BOLT #11: A writer:",
+        "#  - MUST set `payment_hash`.",
+        "# Note: We did not implement this yet.",
+        "#  - MUST set `payment_secret`.",
+    ])
+    quotes = gather_quotes(
+        config, lines_from(text), comment_aside="# Note:",
+    )
+    assert len(quotes) == 1
+    assert quotes[0].text == (
+        "A writer: - MUST set `payment_hash`. - MUST set `payment_secret`."
+    )
+
+
+def test_comment_aside_without_flag_is_appended_normally():
+    config = make_config([bolt_source()])
+    text = "\n".join([
+        "# BOLT #11: A writer:",
+        "# Note: We did not implement this yet.",
+    ])
+    quotes = gather_quotes(config, lines_from(text))
+    assert quotes[0].text == "A writer: Note: We did not implement this yet."
+
+
+def test_comment_aside_closing_inline_comment_still_flushes():
+    config = make_config([bolt_source()])
+    text = "\n".join([
+        "/* BOLT #2: A sending node:",
+        " *  - MUST set foo.",
+        " * Note: not implemented yet. */",
+        "int x = 1;",
+    ])
+    quotes = gather_quotes(
+        config, lines_from(text),
+        comment_start="/* ", comment_continue="*", comment_end="*/",
+        comment_aside="* Note:",
+    )
+    assert len(quotes) == 1
+    assert quotes[0].text == "A sending node: - MUST set foo."
+
+
 def test_iter_lines_reads_files(tmp_path):
     f1 = tmp_path / "a.c"
     f1.write_text("line one\nline two\n")

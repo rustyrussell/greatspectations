@@ -11,6 +11,11 @@ Marker line syntax:  <MARKER>[-<commit>][ #<id>][/<section-hint>]:
     directory-of-files source, not a single fixed file).
   - '/<section-hint>' is optional on any source: restricts matching to
     sections whose header contains this text.
+
+A continuation line starting with the configured comment_aside prefix
+(e.g. '# Note:') is dropped from the quote instead of being appended to
+it, so commentary can sit inside a quote block without being checked
+against the spec.
 """
 
 import re
@@ -133,6 +138,7 @@ def gather_quotes(
     comment_start: str = "# ",
     comment_continue: str = "#",
     comment_end: Optional[str] = None,
+    comment_aside: Optional[str] = None,
     include_commit: Sequence[str] = (),
 ) -> List[Quote]:
     """Scan (filename, linenum, raw_line) triples for marker-quotes."""
@@ -176,6 +182,10 @@ def gather_quotes(
                     cur["text"] = stripped[: -len(comment_end)]
                     flush()
         elif cur is not None:
+            if comment_aside is not None and line.startswith(comment_aside):
+                if comment_end is not None and line.endswith(comment_end):
+                    flush()
+                continue
             if (
                 comment_end is None or not line.startswith(comment_end)
             ) and line.startswith(comment_continue):

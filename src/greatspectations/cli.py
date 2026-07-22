@@ -41,6 +41,7 @@ def cmd_check(args: argparse.Namespace) -> int:
             comment_start=args.comment_start,
             comment_continue=args.comment_continue,
             comment_end=args.comment_end,
+            comment_aside=args.comment_aside,
             include_commit=args.include_commit,
         )
     except QuoteSyntaxError as e:
@@ -166,6 +167,12 @@ def build_parser() -> argparse.ArgumentParser:
     check_parser.add_argument(
         "--comment-end",
         help='marker for end of an inline comment, e.g. "*/" for C',
+    )
+    check_parser.add_argument(
+        "--comment-aside",
+        help="lines starting with this prefix are dropped from the quote "
+        'instead of appended, e.g. "# Note:" for commentary inside a '
+        "quote block",
     )
     check_parser.add_argument(
         "--include-commit", action="append", default=[],

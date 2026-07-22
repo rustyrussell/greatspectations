@@ -144,6 +144,21 @@ containing `specquotes.toml`, not your current working directory.
   (default `#`); an inline/single-line comment style also needs
   `--comment-end` (e.g. for C: `--comment-start='/* ' --comment-continue='*'
   --comment-end='*/'`).
+- `--comment-aside` marks a prefix for commentary that lives inside a
+  quote block but isn't part of the quote -- a continuation line
+  starting with it is dropped instead of appended, so it's never
+  checked against the spec:
+
+  ```c
+  /* BOLT #2: A sending node:
+   *  - MUST set `funding_satoshis`.
+   * Note: We did not implement this yet.
+   */
+  ```
+
+  with `--comment-aside='* Note:'` (adjust the prefix to match
+  whatever `--comment-continue` you're using, e.g. `'# Note:'` for the
+  default `#`-style comments).
 
 ## Matching modes
 
