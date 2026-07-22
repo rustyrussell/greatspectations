@@ -86,6 +86,10 @@ class Config:
     def __contains__(self, name: str) -> bool:
         return name in self.sources
 
+    def marker_map(self) -> Dict[str, str]:
+        """Map each source's comment_marker to its source name."""
+        return {s.comment_marker: s.name for s in self.sources.values()}
+
 
 def _build_source(name: str, table: Dict) -> Source:
     if "format" not in table:
