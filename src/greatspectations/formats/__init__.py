@@ -8,14 +8,18 @@ class Section:
 
     text is the section's content with all runs of whitespace collapsed
     to a single space (so quote matching can ignore line wrapping);
-    linemap[i] is the original source line number for text[i].
-    header is the raw (uncollapsed, stripped) header line, or "" for a
-    document's preamble before its first header.
+    linemap[i] is the original source line number for text[i]. raw is
+    the same content uncollapsed (for exact-mode matching), with
+    raw_linemap[i] the original line number for raw[i]. header is the
+    raw (uncollapsed, stripped) header line, or "" for a document's
+    preamble before its first header.
     """
 
     header: str
     text: str
     linemap: List[int]
+    raw: str
+    raw_linemap: List[int]
 
 
 @dataclass(frozen=True)

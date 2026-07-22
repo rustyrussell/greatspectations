@@ -43,6 +43,16 @@ def test_markdown_collapses_whitespace(tmp_path):
     assert "Blah blah spans multiple lines." in rationale
 
 
+def test_markdown_raw_is_uncollapsed(tmp_path):
+    path = tmp_path / "spec.md"
+    path.write_text(BOLT_STYLE)
+
+    doc = formats.load("markdown", str(path))
+    rationale = doc.sections[3]
+    assert "Blah   blah    spans\nmultiple lines.\n" in rationale.raw
+    assert len(rationale.raw) == len(rationale.raw_linemap)
+
+
 def test_markdown_linemap_tracks_original_lines(tmp_path):
     path = tmp_path / "spec.md"
     path.write_text(BOLT_STYLE)
