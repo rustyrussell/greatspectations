@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Great Spectations — spec quotes that don't drift</title>
+<meta name="description" content="Great Spectations checks that the spec quotes embedded in your source comments still say what the spec says. BOLT, BIP, RFC, or your own SPECIFICATION.md.">
+<meta name="theme-color" content="#11151c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%236fd8a3'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='34' font-style='italic' text-anchor='middle' fill='%2311151c'%3E%C2%A7%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: light dark;
+
+    --bg: #11151c;
+    --bg-raised: #171d27;
+    --bg-code: #0b0e13;
+    --ink: #e7e4da;
+    --ink-dim: #8b93a1;
+    --ink-faint: #565f6d;
+    --rule: #262e3b;
+    --match: #6fd8a3;
+    --match-ink: #0e1a15;
+    --match-dim: #22352c;
+    --drift: #eaa64b;
+    --drift-ink: #241a0a;
+    --drift-dim: #3c2f1c;
+    --accent: #6fd8a3;
+    --shadow: 0 20px 60px -30px rgba(0,0,0,0.6);
+
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #eef1ec;
+      --bg-raised: #ffffff;
+      --bg-code: #e4e8e1;
+      --ink: #1b2420;
+      --ink-dim: #56635c;
+      --ink-faint: #8b978f;
+      --rule: #cdd6cc;
+      --match: #1f7a52;
+      --match-ink: #f2fbf6;
+      --match-dim: #d7ede1;
+      --drift: #a15f0a;
+      --drift-ink: #fbf3e6;
+      --drift-dim: #f3e3c9;
+      --accent: #1f7a52;
+      --shadow: 0 20px 50px -30px rgba(30,40,30,0.25);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #11151c;
+    --bg-raised: #171d27;
+    --bg-code: #0b0e13;
+    --ink: #e7e4da;
+    --ink-dim: #8b93a1;
+    --ink-faint: #565f6d;
+    --rule: #262e3b;
+    --match: #6fd8a3;
+    --match-ink: #0e1a15;
+    --match-dim: #22352c;
+    --drift: #eaa64b;
+    --drift-ink: #241a0a;
+    --drift-dim: #3c2f1c;
+    --accent: #6fd8a3;
+    --shadow: 0 20px 60px -30px rgba(0,0,0,0.6);
+  }
+
+  :root[data-theme="light"] {
+    --bg: #eef1ec;
+    --bg-raised: #ffffff;
+    --bg-code: #e4e8e1;
+    --ink: #1b2420;
+    --ink-dim: #56635c;
+    --ink-faint: #8b978f;
+    --rule: #cdd6cc;
+    --match: #1f7a52;
+    --match-ink: #f2fbf6;
+    --match-dim: #d7ede1;
+    --drift: #a15f0a;
+    --drift-ink: #fbf3e6;
+    --drift-dim: #f3e3c9;
+    --accent: #1f7a52;
+    --shadow: 0 20px 50px -30px rgba(30,40,30,0.25);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--match-dim); color: var(--ink); }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, [role="button"]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 1.75rem;
+  }
+
+  .prose {
+    max-width: 40rem;
+  }
+
+  /* ---------- header ---------- */
+
+  header.site {
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  header.site .wrap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .wordmark {
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    color: var(--ink);
+  }
+
+  .wordmark em {
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  nav.site-nav {
+    display: flex;
+    gap: 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+  }
+
+  nav.site-nav a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    text-transform: lowercase;
+  }
+  nav.site-nav a:hover { color: var(--accent); }
+
+  /* ---------- hero ---------- */
+
+  .hero {
+    padding: 4.5rem 0 3rem;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--match);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 0 0 1.25rem;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 1.6em;
+    height: 1px;
+    background: var(--match);
+    display: inline-block;
+  }
+
+  h1.hero-title {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(2.6rem, 2rem + 2.6vw, 4.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+  }
+
+  h1.hero-title em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.15rem, 1rem + 0.5vw, 1.45rem);
+    color: var(--ink-dim);
+    max-width: 34rem;
+    margin: 0 0 2.25rem;
+    text-wrap: balance;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .cmd {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg-code);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 0.55rem 0.6rem 0.55rem 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.88rem;
+  }
+
+  .cmd .prompt { color: var(--ink-faint); }
+  .cmd code { color: var(--ink); }
+
+  .copy-btn {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-dim);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-radius: 5px;
+    padding: 0.3rem 0.55rem;
+    cursor: pointer;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .copy-btn[data-copied="true"] { color: var(--match); border-color: var(--match); }
+
+  /* ---------- section shell ---------- */
+
+  section.block {
+    padding: 3.25rem 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.85rem;
+    margin: 0 0 1.75rem;
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+  }
+
+  h2.section-title {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 1.25rem + 1vw, 1.95rem);
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  /* ---------- feature list ---------- */
+
+  ul.spec-notes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.1rem;
+    max-width: 44rem;
+  }
+
+  ul.spec-notes li {
+    display: grid;
+    grid-template-columns: 1.4rem 1fr;
+    gap: 0.75rem;
+    align-items: baseline;
+  }
+
+  ul.spec-notes li::before {
+    content: "▪";
+    font-family: var(--mono);
+    color: var(--match);
+    font-size: 0.85em;
+  }
+
+  ul.spec-notes strong {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  ul.spec-notes span.note-body { color: var(--ink-dim); }
+
+  /* ---------- example / code panel ---------- */
+
+  .example-panel {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .example-panel .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.15rem;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+  }
+
+  .panel-head .filename { color: var(--ink-dim); }
+
+  .state-toggle {
+    display: inline-flex;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .state-toggle button {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border: none;
+    background: transparent;
+    color: var(--ink-faint);
+    padding: 0.32rem 0.7rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .state-toggle button[aria-pressed="true"] {
+    background: var(--bg-code);
+    color: var(--ink);
+  }
+
+  .example-panel pre {
+    margin: 0;
+    padding: 1.35rem 1.15rem;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.65;
+    background: var(--bg-code);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ln-comment { color: var(--ink-faint); }
+  .ln-marker { color: var(--ink-dim); }
+  .marker-hit { color: var(--match); }
+  .marker-drift { color: var(--drift); text-decoration: line-through; text-decoration-color: var(--drift); text-decoration-thickness: 1.5px; }
+  .ln-code { color: var(--ink); }
+  .ln-code .num { color: var(--accent); }
+
+  .diagram-swap {
+    position: relative;
+  }
+
+  .result-chip {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0.9rem 1.15rem 1.15rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    border-top: 1px dashed var(--rule);
+    background: var(--bg-raised);
+  }
+
+  .result-chip[hidden] {
+    display: none;
+  }
+
+  .result-chip .dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    margin-top: 0.35rem;
+    flex: none;
+    background: var(--match);
+  }
+
+  .result-chip .msg { color: var(--ink-dim); }
+  .result-chip .msg strong { color: var(--ink); font-weight: 600; }
+
+  [data-state="drift"] .result-chip .dot { background: var(--drift); }
+
+  /* ---------- why-it-matters / marginalia ---------- */
+
+  .marginalia {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+    max-width: 44rem;
+  }
+
+  .marginalia p {
+    margin: 0 0 1rem;
+    color: var(--ink-dim);
+  }
+
+  .marginalia p:first-child::first-letter {
+    font-family: var(--serif);
+    font-size: 3.1rem;
+    font-weight: 600;
+    float: left;
+    line-height: 0.82;
+    padding: 0.05em 0.08em 0 0;
+    color: var(--ink);
+  }
+
+  /* ---------- footer ---------- */
+
+  footer.site {
+    border-top: 1px solid var(--rule);
+    padding: 2.25rem 0 3rem;
+  }
+
+  footer.site .wrap {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: baseline;
+  }
+
+  footer.site .fine-print {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+  }
+
+  footer.site .sources {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    display: flex;
+    gap: 0.9rem;
+  }
+
+  @media (max-width: 640px) {
+    .hero { padding: 3rem 0 2.25rem; }
+    section.block { padding: 2.5rem 0; }
+    .cmd { font-size: 0.8rem; }
+    footer.site .wrap { flex-direction: column; }
+    header.site .wrap { flex-direction: column; align-items: flex-start; gap: 0.85rem; }
+    nav.site-nav {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 1.1rem;
+      max-width: 100%;
+    }
+    nav.site-nav a { white-space: nowrap; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="wordmark" href="#top">Great <em>Spectations</em></a>
+    <nav class="site-nav" aria-label="Section">
+      <a href="#catches">What it catches</a>
+      <a href="#example">Example</a>
+      <a href="#why">Why it Matters</a>
+      <a href="#install">Install</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero" id="install">
+    <div class="wrap">
+      <p class="eyebrow">Faithful Spec Compliance</p>
+      <h1 class="hero-title">Great <em>Spectations</em></h1>
+      <p class="hero-tagline">Implementing or developing a spec? You need Great Spectations!</p>
+
+      <div class="cta-row">
+        <span class="cmd">
+          <span class="prompt">$</span>
+          <code id="cmd-install-pip">pip install greatspectations</code>
+          <button class="copy-btn" data-copy-target="cmd-install-pip" type="button">Copy</button>
+        </span>
+        <span class="cmd">
+          <span class="prompt">$</span>
+          <code id="cmd-install-uv">uv tool install greatspectations</code>
+          <button class="copy-btn" data-copy-target="cmd-install-uv" type="button">Copy</button>
+        </span>
+        <span class="cmd">
+          <span class="prompt">$</span>
+          <code id="cmd-check">spectate check --config specquotes.toml src/*.c</code>
+          <button class="copy-btn" data-copy-target="cmd-check" type="button">Copy</button>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="catches">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-num">§1</span>
+        <h2 class="section-title">Orphans and Convicts</h2>
+      </div>
+      <ul class="spec-notes">
+        <li><span><strong>You quote the spec as you implement.</strong> <span class="note-body">A comment marker names the source and section; the text after it is the quote.</span></span></li>
+        <li><span><strong>Great Spectations checks the quote against the spec.</strong> <span class="note-body">Ignoring whitespace differences by default, or byte-exact if you prefer.</span></span></li>
+        <li><span><strong>If the spec changes, it notices.</strong> <span class="note-body">And tells you exactly which comment is now quoting text that no longer exists.</span></span></li>
+        <li><span><strong>A convenient format.</strong> <span class="note-body"><code>...</code> wildcards, and a quote can pick up where the previous one left off: split one requirement list across multiple code chunks.</span></span></li>
+        <li><span><strong>Coverage too.</strong> <span class="note-body">Ask which requirements in the spec no comment has quoted yet.</span></span></li>
+        <li><span><strong>Any language, any spec.</strong> <span class="note-body">C, Python, Rust comment syntax all handled. Markdown specs, MediaWiki, old-school RFC-editor plaintext, and more.</span></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="block" id="example">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-num">§2</span>
+        <h2 class="section-title">Quote Glorious Prose, by Dickens!</h2>
+      </div>
+
+      <div class="example-panel diagram-swap" id="example-swap" data-state="match">
+        <div class="panel-head">
+          <span class="filename">pip.py</span>
+          <div class="state-toggle" role="group" aria-label="Preview matched or drifted spec">
+            <button type="button" data-set-state="match" aria-pressed="true">spec matches</button>
+            <button type="button" data-set-state="drift" aria-pressed="false">spec drifted</button>
+          </div>
+        </div>
+        <pre><code><span class="ln-comment"># </span><span class="ln-marker" data-marker>DICKENS #1:</span>
+<span class="ln-comment">#  It was the best of times, it was the <span data-highlight>worst</span> of times.</span>
+<span class="ln-code"><span class="num">TIMES</span> = "worst"</span></code></pre>
+        <p class="result-chip" data-match-msg>
+          <span class="dot" aria-hidden="true"></span>
+          <span class="msg"><strong>spectate check</strong> — quote matches <em>A Tale of Two Cities</em>, ch. 1, verbatim.</span>
+        </p>
+        <p class="result-chip" data-drift-msg hidden>
+          <span class="dot" aria-hidden="true"></span>
+          <span class="msg"><strong>pip.py:1:</strong> cannot find match — "blurst" isn't in the spec. <a href="https://www.youtube.com/watch?v=no_elVGGgW8">"You stupid monkey!"</a></span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="why">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-num">§3</span>
+        <h2 class="section-title">I say, Pip, old chap!</h2>
+      </div>
+      <div class="marginalia">
+        <p>This is particularly useful when implementing a specification and its implementation side by side: the spec becomes better because you use it to annotate the code, and can see whether it's sufficiently thorough, or logically laid out for other implementors.</p>
+        <p>Great Spectations spots the moment the two get out of sync.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span class="fine-print">Copyright Rusty Russell 2026. BSD-MIT licensed.</span>
+    <span class="sources">
+      <span>bolt</span><span>bip</span><span>rfc</span><span>markdown</span>
+    </span>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    "use strict";
+
+    document.querySelectorAll(".copy-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var targetId = btn.getAttribute("data-copy-target");
+        var el = document.getElementById(targetId);
+        if (!el) return;
+        var text = el.textContent;
+        var done = function () {
+          btn.setAttribute("data-copied", "true");
+          var prev = btn.textContent;
+          btn.textContent = "Copied";
+          setTimeout(function () {
+            btn.removeAttribute("data-copied");
+            btn.textContent = prev;
+          }, 1400);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, done);
+        } else {
+          done();
+        }
+      });
+    });
+
+    var panel = document.getElementById("example-swap");
+    var toggle = panel.querySelector(".state-toggle");
+    var marker = panel.querySelector("[data-marker]");
+    var highlight = panel.querySelector("[data-highlight]");
+    var matchMsg = panel.querySelector("[data-match-msg]");
+    var driftMsg = panel.querySelector("[data-drift-msg]");
+
+    function setState(state) {
+      panel.setAttribute("data-state", state);
+      toggle.querySelectorAll("button").forEach(function (b) {
+        b.setAttribute("aria-pressed", String(b.getAttribute("data-set-state") === state));
+      });
+      if (state === "drift") {
+        marker.classList.remove("marker-hit");
+        marker.classList.add("marker-drift");
+        highlight.classList.remove("marker-hit");
+        highlight.classList.add("marker-drift");
+        highlight.textContent = "blurst";
+        matchMsg.hidden = true;
+        driftMsg.hidden = false;
+      } else {
+        marker.classList.remove("marker-drift");
+        marker.classList.add("marker-hit");
+        highlight.classList.remove("marker-drift");
+        highlight.classList.add("marker-hit");
+        highlight.textContent = "worst";
+        matchMsg.hidden = false;
+        driftMsg.hidden = true;
+      }
+    }
+
+    toggle.addEventListener("click", function (e) {
+      var btn = e.target.closest("button[data-set-state]");
+      if (!btn) return;
+      setState(btn.getAttribute("data-set-state"));
+    });
+
+    setState("match");
+  })();
+</script>
+
+</body>
+</html>
