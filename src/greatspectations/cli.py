@@ -1,15 +1,17 @@
 import argparse
 import json
+import os
 import sys
 from typing import List, Optional, Sequence, Tuple
 
 from greatspectations import __version__
 from greatspectations.config import Config, ConfigError, IdType
 from greatspectations.config import load as load_config
-from greatspectations.coverage import CoverageError, find_gaps
+from greatspectations.coverage import CoverageError, build_annotations
 from greatspectations.coverage import write_coverage as append_coverage
 from greatspectations.matching import MatchingError, check_quotes
 from greatspectations.quotes import QuoteSyntaxError, gather_quotes, iter_lines
+from greatspectations.report import html_filename, render_html, render_json, render_text
 
 
 def _load_config_or_die(path: str) -> Config:
@@ -105,22 +107,29 @@ def cmd_coverage(args: argparse.Namespace) -> int:
         doc_keys = [_parse_source_spec(s) for s in args.source]
 
     try:
-        gap_lines, any_uncovered = find_gaps(
-            config, args.coverage, doc_keys=doc_keys,
-            all_sections=args.all_sections, mode=args.mode,
+        by_doc, any_uncovered = build_annotations(
+            config, args.coverage, doc_keys=doc_keys, mode=args.mode,
         )
     except CoverageError as e:
         print("error: {}".format(e), file=sys.stderr)
         return 1
 
-    if args.format == "json":
-        payload = [
-            {"file": g.file, "line": g.line, "text": g.text} for g in gap_lines
-        ]
-        print(json.dumps(payload, indent=2))
+    if args.format == "html":
+        if not args.output_dir:
+            print("error: --format html requires --output-dir", file=sys.stderr)
+            return 1
+        os.makedirs(args.output_dir, exist_ok=True)
+        for doc_key, annotations in by_doc.items():
+            path = annotations[0].file if annotations else ""
+            page = render_html(doc_key, path, annotations)
+            out_path = os.path.join(args.output_dir, html_filename(*doc_key))
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(page)
+    elif args.format == "json":
+        print(json.dumps(render_json(by_doc, any_uncovered), indent=2))
     else:
-        for g in gap_lines:
-            print("{}:{}:{}".format(g.file, g.line, g.text))
+        for line in render_text(by_doc):
+            print(line)
 
     return 1 if any_uncovered else 0
 
@@ -201,17 +210,18 @@ def build_parser() -> argparse.ArgumentParser:
         "source/id found in the coverage file)",
     )
     coverage_parser.add_argument(
-        "--all-sections", action="store_true",
-        help="Check all sections, not just Requirements sections",
-    )
-    coverage_parser.add_argument(
         "--mode", choices=("normalized", "exact"), default="normalized",
         help="Must match the mode used when the coverage file was written "
         "(default: %(default)s)",
     )
     coverage_parser.add_argument(
-        "--format", choices=("text", "json"), default="text",
+        "--format", choices=("text", "json", "html"), default="text",
         help="Output format (default: %(default)s)",
+    )
+    coverage_parser.add_argument(
+        "--output-dir", metavar="DIR",
+        help="Directory to write one HTML file per document into "
+        "(required, and only used, with --format html)",
     )
     coverage_parser.set_defaults(func=cmd_coverage)
 

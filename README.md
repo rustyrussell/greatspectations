@@ -170,33 +170,63 @@ for specs where exact byte matching matters.
 ## Coverage
 
 `spectate check --coverage=FILE ...` appends a record for every quote
-that matched. `spectate coverage --coverage=FILE` then reports spec text
-that no quote covers:
+that matched. `spectate coverage --coverage=FILE` then annotates every
+line of the spec document with its coverage status:
 
 ```
 spectate check --config specquotes.toml --coverage=.coverage src/*.c
 spectate coverage --config specquotes.toml --coverage=.coverage
 ```
 
-By default, a section is considered only if its header names it a
-Requirements section (BOLT's convention) or its text contains an RFC
-2119/8174 normative keyword -- `MUST`, `MUST NOT`, `SHALL`, `SHALL NOT`,
-`SHOULD`, `SHOULD NOT`, `REQUIRED`, `RECOMMENDED`, `OPTIONAL`, `MAY` --
-matched case-sensitively, since RFC 8174 limits normative force to the
-all-caps form (and it's what excludes plain English "must"/"should" in
-pre-2119 RFCs and most BIPs, which don't reliably use the convention).
-Within such a section, only the sentence or bullet that actually
-contains a keyword is reported as a gap -- surrounding prose,
-rationale, and examples aren't. `--all-sections` bypasses both filters
-and reports every section's uncovered text verbatim, keyword or not.
+Every physical line of every checked document gets one of three
+statuses:
+
+- **covered** -- at least one quote's matched text touches this line.
+- **gap** -- nothing quotes this line, but it contains an RFC
+  2119/8174 normative keyword (`MUST`, `MUST NOT`, `SHALL`, `SHALL NOT`,
+  `SHOULD`, `SHOULD NOT`, `REQUIRED`, `RECOMMENDED`, `OPTIONAL`, `MAY`),
+  so it looks like a requirement nothing implements.
+- **neutral** -- neither: ordinary prose, headers, examples, rationale.
+  Not expected to be quoted, so it's never flagged.
+
+The keyword check is deliberately case-sensitive: RFC 8174 limits
+normative force to the all-caps form, which BOLT and most modern RFCs
+follow, and it's also what keeps this quiet on plain English
+"must"/"should" in pre-2119 RFCs and most BIPs, neither of which
+reliably use the convention. (Status is decided per physical line, not
+per sentence, so two different requirements hard-wrapped onto the same
+line can occasionally mask each other -- a deliberate precision/
+simplicity tradeoff.)
+
+`--format text` (the default) prints one line per annotated line, with
+a 3-character status prefix: `***` for a gap, `+`/`++`/`+++` for a
+covered line quoted 1/2/3-or-more times, or three spaces for neutral --
+followed by the usual `file:line:text`:
+
+```
+    src/BOLT-11.md:5:A writer:
++   src/BOLT-11.md:6:  - MUST set `payment_hash` to the SHA256 of `payment_preimage`.
+*** src/BOLT-11.md:7:  - MUST set `payment_secret` to a fresh, random value.
+```
+
+`--format json` emits the same information as `{"documents": [{"source",
+"id", "path", "lines": [{"line", "text", "status", "mentions"}, ...]},
+...], "summary": {"any_uncovered"}}`.
+
+`--format html --output-dir DIR` writes one self-contained HTML page per
+document (`DIR/{source}-{id}.html`, or `DIR/{source}.html` for
+single-file sources) with the same three statuses shown as red/green/
+plain, for a human to skim.
 
 Restrict to specific documents with `--source NAME[:ID]` (repeatable);
 by default every `(source, id)` pair found in the coverage file is
 checked. `--mode` must match whatever mode `check` used to write the
-coverage file, since match offsets are mode-specific.
+coverage file, since match offsets are mode-specific. The exit code is
+1 if any line anywhere is a gap, 0 otherwise.
 
 ## CI output
 
-Both subcommands accept `--format json` for machine-readable output
-instead of the default `file:line:message` text, if you want to post
-results elsewhere rather than just scrape build logs.
+`check` and `spectate coverage --format text/json` both default to (or
+accept) machine-scrapable `file:line:message`/JSON output; `coverage
+--format html` is the human-facing option, meant for local review or
+publishing as a build artifact rather than for CI to parse.

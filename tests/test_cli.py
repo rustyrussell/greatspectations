@@ -88,7 +88,10 @@ def test_check_rfc_coverage_roundtrip(tmp_path):
         ["coverage", "--config", CONFIG, "--coverage", str(coverage_path), "--source", "rfc:9999"]
     )
     assert result.returncode == 0
-    assert result.stdout == ""
+    # Fully covered -- the whole document is still dumped (every line
+    # gets a status), just with no "should be covered" gap lines.
+    assert result.stdout != ""
+    assert "***" not in result.stdout
 
 
 def test_check_cmdata_spec_section_hints_avoid_cross_match(tmp_path):
@@ -183,6 +186,10 @@ def test_coverage_reports_uncovered_requirement(tmp_path):
     )
     assert result.returncode == 1
     assert "payment_secret" in result.stdout
+    gap_lines = [
+        line for line in result.stdout.splitlines() if line.startswith("***")
+    ]
+    assert any("payment_secret" in line for line in gap_lines)
 
 
 def test_coverage_json_format(tmp_path):
@@ -200,8 +207,14 @@ def test_coverage_json_format(tmp_path):
     )
     assert result.returncode == 1
     payload = json.loads(result.stdout)
-    assert isinstance(payload, list)
-    assert any("payment_secret" in g["text"] for g in payload)
+    assert payload["summary"]["any_uncovered"] is True
+    doc = payload["documents"][0]
+    assert doc["source"] == "bolt"
+    assert doc["id"] == 11
+    gap_lines = [line for line in doc["lines"] if line["status"] == "gap"]
+    assert any("payment_secret" in line["text"] for line in gap_lines)
+    covered_lines = [line for line in doc["lines"] if line["status"] == "covered"]
+    assert any("payment_hash" in line["text"] for line in covered_lines)
 
 
 def test_coverage_fully_covered_exits_zero(tmp_path):
@@ -221,7 +234,47 @@ def test_coverage_fully_covered_exits_zero(tmp_path):
         ["coverage", "--config", CONFIG, "--coverage", str(coverage_path), "--source", "bolt:11"]
     )
     assert result.returncode == 0
-    assert result.stdout == ""
+    assert "***" not in result.stdout
+    assert "payment_hash" in result.stdout
+
+
+def test_coverage_html_format_writes_one_file_per_document(tmp_path):
+    source = write_source(
+        tmp_path, "example.c",
+        "# BOLT #11: A writer: - MUST set `payment_hash` to the SHA256 of "
+        "`payment_preimage`.\n",
+    )
+    coverage_path = tmp_path / "coverage.txt"
+    run_spectate(["check", "--config", CONFIG, "--coverage", str(coverage_path), source])
+
+    output_dir = tmp_path / "html-out"
+    result = run_spectate(
+        ["coverage", "--config", CONFIG, "--coverage", str(coverage_path),
+         "--source", "bolt:11", "--format", "html", "--output-dir", str(output_dir)]
+    )
+    assert result.returncode == 1
+    html_path = output_dir / "bolt-11.html"
+    assert html_path.exists()
+    page = html_path.read_text()
+    assert 'class="gap"' in page
+    assert "payment_secret" in page
+
+
+def test_coverage_html_format_requires_output_dir(tmp_path):
+    source = write_source(
+        tmp_path, "example.c",
+        "# BOLT #11: A writer: - MUST set `payment_hash` to the SHA256 of "
+        "`payment_preimage`.\n",
+    )
+    coverage_path = tmp_path / "coverage.txt"
+    run_spectate(["check", "--config", CONFIG, "--coverage", str(coverage_path), source])
+
+    result = run_spectate(
+        ["coverage", "--config", CONFIG, "--coverage", str(coverage_path),
+         "--source", "bolt:11", "--format", "html"]
+    )
+    assert result.returncode == 1
+    assert "--output-dir" in result.stderr
 
 
 def test_check_missing_config_reports_error(tmp_path):
