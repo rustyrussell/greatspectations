@@ -37,19 +37,26 @@ def test_find_quote_simple_match(tmp_path):
     headers = [s.header for s in doc.sections]
     requirements_idx = headers.index("## Requirements")
 
-    # Restrict the start section explicitly: sections preceding the
-    # match (here, the empty preamble and the '# Spec' title section)
-    # don't contain the text, so find_quote's cross-section fallback
-    # would otherwise credit start=0 in the *found* section rather than
-    # the text's true offset -- this is the same "start credited as 0
-    # for a cross-section match" behavior check_quotes.py's find_quote
-    # documents, ported unchanged; it's why section-hint restriction is
-    # useful beyond just avoiding false positives.
     m = find_quote(
         "A writer MUST set the length field", doc.sections,
         candidate_indices=[requirements_idx],
     )
     assert m is not None
+    assert doc.sections[m.section_idx].text[m.start:m.end] == (
+        "A writer MUST set the length field"
+    )
+
+
+def test_find_quote_reports_true_offset_without_a_hint(tmp_path):
+    # The text isn't in the preamble/title sections find_quote tries
+    # first -- its cross-section fallback must still report the real
+    # offset within the section it's actually found in, not credit it
+    # to that section's start (a real bug: it corrupted coverage-file
+    # offsets for any quote without a /section-hint).
+    doc = load_doc(tmp_path, "spec.md", SPEC_TEXT)
+    m = find_quote("A writer MUST set the length field", doc.sections)
+    assert m is not None
+    assert doc.sections[m.section_idx].header == "## Requirements"
     assert doc.sections[m.section_idx].text[m.start:m.end] == (
         "A writer MUST set the length field"
     )

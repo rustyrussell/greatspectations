@@ -101,7 +101,8 @@ def find_quote(
                         cur_pos = next_pos
                         cur_si = next_si
                         cur_text = next_text
-                        match_start = 0
+                        if i == 0 and match_start < 0:
+                            match_start = new_off
                         off = new_off + len(search_part)
                         found = True
                         break
