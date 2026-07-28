@@ -7,7 +7,7 @@ FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
 CONFIG = os.path.join(FIXTURES, "specquotes.toml")
 
 
-def run_spectate(args, input_text=None):
+def run_greatspectate(args, input_text=None):
     return subprocess.run(
         [sys.executable, "-m", "greatspectations", *args],
         input=input_text,
@@ -28,7 +28,7 @@ def test_check_bolt_success(tmp_path):
         "# BOLT #11: A writer:\n"
         "#  - MUST set `payment_hash` to the SHA256 of `payment_preimage`.\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, source])
+    result = run_greatspectate(["check", "--config", CONFIG, source])
     assert result.returncode == 0, result.stderr
     assert result.stdout == ""
 
@@ -38,7 +38,7 @@ def test_check_bolt_failure_reports_file_and_line(tmp_path):
         tmp_path, "example.c",
         "# BOLT #11: this text does not appear anywhere in the spec\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, source])
+    result = run_greatspectate(["check", "--config", CONFIG, source])
     assert result.returncode == 1
     assert "example.c:1:cannot find match" in result.stderr
 
@@ -48,7 +48,7 @@ def test_check_bip_success(tmp_path):
         tmp_path, "example.c",
         "# BIP #340: A signer MUST use a 32-byte private key.\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, source])
+    result = run_greatspectate(["check", "--config", CONFIG, source])
     assert result.returncode == 0, result.stderr
 
 
@@ -58,7 +58,7 @@ def test_check_rfc_success(tmp_path):
         "# RFC #9999: A verifier MUST reject a packet whose checksum does "
         "not match.\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, source])
+    result = run_greatspectate(["check", "--config", CONFIG, source])
     assert result.returncode == 0, result.stderr
 
 
@@ -67,7 +67,7 @@ def test_check_rfc_failure(tmp_path):
         tmp_path, "example.c",
         "# RFC #9999: this text does not appear in the RFC\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, source])
+    result = run_greatspectate(["check", "--config", CONFIG, source])
     assert result.returncode == 1
     assert "example.c:1:cannot find match" in result.stderr
 
@@ -79,12 +79,12 @@ def test_check_rfc_coverage_roundtrip(tmp_path):
         "not match.\n",
     )
     coverage_path = tmp_path / "coverage.txt"
-    check_result = run_spectate(
+    check_result = run_greatspectate(
         ["check", "--config", CONFIG, "--coverage", str(coverage_path), source]
     )
     assert check_result.returncode == 0, check_result.stderr
 
-    result = run_spectate(
+    result = run_greatspectate(
         ["coverage", "--config", CONFIG, "--coverage", str(coverage_path), "--source", "rfc:9999"]
     )
     assert result.returncode == 0
@@ -100,7 +100,7 @@ def test_check_cmdata_spec_section_hints_avoid_cross_match(tmp_path):
         "# CMDATA-SPEC/Reader Requirements: A reader: - MUST fail parsing if the length is wrong.\n"
         "# CMDATA-SPEC/Writer Requirements: A writer: - MUST fail parsing if the length is wrong.\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, source])
+    result = run_greatspectate(["check", "--config", CONFIG, source])
     assert result.returncode == 0, result.stderr
 
 
@@ -109,7 +109,7 @@ def test_check_cmdata_spec_wrong_hint_fails(tmp_path):
         tmp_path, "example.c",
         "# CMDATA-SPEC/Rationale: A reader: - MUST fail parsing if the length is wrong.\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, source])
+    result = run_greatspectate(["check", "--config", CONFIG, source])
     assert result.returncode == 1
     assert "example.c:1:" in result.stderr
 
@@ -120,7 +120,7 @@ def test_check_keep_going_reports_all_failures(tmp_path):
         "# BOLT #11: nope one\n"
         "# BOLT #11: nope two\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, "-k", source])
+    result = run_greatspectate(["check", "--config", CONFIG, "-k", source])
     assert result.returncode == 1
     assert result.stderr.count("cannot find match") == 2
 
@@ -131,7 +131,7 @@ def test_check_without_keep_going_stops_at_first_failure(tmp_path):
         "# BOLT #11: nope one\n"
         "# BOLT #11: nope two\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, source])
+    result = run_greatspectate(["check", "--config", CONFIG, source])
     assert result.returncode == 1
     assert result.stderr.count("cannot find match") == 1
 
@@ -142,7 +142,7 @@ def test_check_json_format(tmp_path):
         "# BOLT #11: A writer:\n"
         "#  - MUST set `payment_hash` to the SHA256 of `payment_preimage`.\n",
     )
-    result = run_spectate(["check", "--config", CONFIG, "--format", "json", source])
+    result = run_greatspectate(["check", "--config", CONFIG, "--format", "json", source])
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     assert payload["summary"] == {"total": 1, "failed": 0}
@@ -158,7 +158,7 @@ def test_check_writes_coverage_file(tmp_path):
         "#  - MUST set `payment_hash` to the SHA256 of `payment_preimage`.\n",
     )
     coverage_path = tmp_path / "coverage.txt"
-    result = run_spectate(
+    result = run_greatspectate(
         ["check", "--config", CONFIG, "--coverage", str(coverage_path), source]
     )
     assert result.returncode == 0, result.stderr
@@ -176,12 +176,12 @@ def test_coverage_reports_uncovered_requirement(tmp_path):
         "`payment_preimage`.\n",
     )
     coverage_path = tmp_path / "coverage.txt"
-    check_result = run_spectate(
+    check_result = run_greatspectate(
         ["check", "--config", CONFIG, "--coverage", str(coverage_path), source]
     )
     assert check_result.returncode == 0, check_result.stderr
 
-    result = run_spectate(
+    result = run_greatspectate(
         ["coverage", "--config", CONFIG, "--coverage", str(coverage_path), "--source", "bolt:11"]
     )
     assert result.returncode == 1
@@ -199,9 +199,9 @@ def test_coverage_json_format(tmp_path):
         "`payment_preimage`.\n",
     )
     coverage_path = tmp_path / "coverage.txt"
-    run_spectate(["check", "--config", CONFIG, "--coverage", str(coverage_path), source])
+    run_greatspectate(["check", "--config", CONFIG, "--coverage", str(coverage_path), source])
 
-    result = run_spectate(
+    result = run_greatspectate(
         ["coverage", "--config", CONFIG, "--coverage", str(coverage_path),
          "--source", "bolt:11", "--format", "json"]
     )
@@ -225,12 +225,12 @@ def test_coverage_fully_covered_exits_zero(tmp_path):
         "value.\n",
     )
     coverage_path = tmp_path / "coverage.txt"
-    check_result = run_spectate(
+    check_result = run_greatspectate(
         ["check", "--config", CONFIG, "--coverage", str(coverage_path), source]
     )
     assert check_result.returncode == 0, check_result.stderr
 
-    result = run_spectate(
+    result = run_greatspectate(
         ["coverage", "--config", CONFIG, "--coverage", str(coverage_path), "--source", "bolt:11"]
     )
     assert result.returncode == 0
@@ -245,10 +245,10 @@ def test_coverage_html_format_writes_one_file_per_document(tmp_path):
         "`payment_preimage`.\n",
     )
     coverage_path = tmp_path / "coverage.txt"
-    run_spectate(["check", "--config", CONFIG, "--coverage", str(coverage_path), source])
+    run_greatspectate(["check", "--config", CONFIG, "--coverage", str(coverage_path), source])
 
     output_dir = tmp_path / "html-out"
-    result = run_spectate(
+    result = run_greatspectate(
         ["coverage", "--config", CONFIG, "--coverage", str(coverage_path),
          "--source", "bolt:11", "--format", "html", "--output-dir", str(output_dir)]
     )
@@ -267,9 +267,9 @@ def test_coverage_html_format_requires_output_dir(tmp_path):
         "`payment_preimage`.\n",
     )
     coverage_path = tmp_path / "coverage.txt"
-    run_spectate(["check", "--config", CONFIG, "--coverage", str(coverage_path), source])
+    run_greatspectate(["check", "--config", CONFIG, "--coverage", str(coverage_path), source])
 
-    result = run_spectate(
+    result = run_greatspectate(
         ["coverage", "--config", CONFIG, "--coverage", str(coverage_path),
          "--source", "bolt:11", "--format", "html"]
     )
@@ -279,7 +279,7 @@ def test_coverage_html_format_requires_output_dir(tmp_path):
 
 def test_check_missing_config_reports_error(tmp_path):
     source = write_source(tmp_path, "example.c", "# BOLT #11: text\n")
-    result = run_spectate(
+    result = run_greatspectate(
         ["check", "--config", str(tmp_path / "nonexistent.toml"), source]
     )
     assert result.returncode == 1
@@ -287,6 +287,6 @@ def test_check_missing_config_reports_error(tmp_path):
 
 
 def test_no_command_prints_help():
-    result = run_spectate([])
+    result = run_greatspectate([])
     assert result.returncode == 0
-    assert "spectate" in result.stdout
+    assert "greatspectate" in result.stdout

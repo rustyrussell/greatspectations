@@ -16,7 +16,7 @@ you point it at: BOLTs, BIPs, RFCs, or a single-file spec like
 pip install -e .
 ```
 
-This installs the `spectate` command (also runnable as
+This installs the `greatspectate` command (also runnable as
 `python -m greatspectations`).
 
 ## Quickstart
@@ -32,10 +32,10 @@ A comment like:
 is checked against your BOLT spec checkout by:
 
 ```
-spectate check --config specquotes.toml src/invoice.c
+greatspectate check --config specquotes.toml src/invoice.c
 ```
 
-`spectate` exits 0 if every quote is found verbatim (modulo whitespace)
+`greatspectate` exits 0 if every quote is found verbatim (modulo whitespace)
 in the spec, or 1 and prints `file:line:message` for anything that
 doesn't match.
 
@@ -65,7 +65,7 @@ dir = "/usr/share/doc/RFC/standard"
 pattern = "rfc{id}.txt.gz"
 ```
 
-`spectate` doesn't fetch anything -- point `dir`/`file` at a checkout or
+`greatspectate` doesn't fetch anything -- point `dir`/`file` at a checkout or
 package you already have (a `git clone` of `bitcoin/bips`, `apt install
 doc-rfc-std`, or a spec file that lives in your own repo).
 
@@ -91,7 +91,7 @@ Each `[sources.NAME]` table is:
     RFCs span categories, but `doc-rfc-std` additionally ships a
     `links/` directory that symlinks every RFC into one flat directory
     regardless of category, so a recursive pattern matches both the
-    symlink and the real file for the same id and `spectate` refuses
+    symlink and the real file for the same id and `greatspectate` refuses
     the ambiguity (`glob.glob` has no way to exclude a subdirectory by
     name). If you need multiple categories, glob each one explicitly
     with a separate `[sources.NAME]` table instead.
@@ -169,13 +169,13 @@ for specs where exact byte matching matters.
 
 ## Coverage
 
-`spectate check --coverage=FILE ...` appends a record for every quote
-that matched. `spectate coverage --coverage=FILE` then annotates every
+`greatspectate check --coverage=FILE ...` appends a record for every quote
+that matched. `greatspectate coverage --coverage=FILE` then annotates every
 line of the spec document with its coverage status:
 
 ```
-spectate check --config specquotes.toml --coverage=.coverage src/*.c
-spectate coverage --config specquotes.toml --coverage=.coverage
+greatspectate check --config specquotes.toml --coverage=.coverage src/*.c
+greatspectate coverage --config specquotes.toml --coverage=.coverage
 ```
 
 Every physical line of every checked document gets one of three
@@ -226,7 +226,7 @@ coverage file, since match offsets are mode-specific. The exit code is
 
 ## CI output
 
-`check` and `spectate coverage --format text/json` both default to (or
+`check` and `greatspectate coverage --format text/json` both default to (or
 accept) machine-scrapable `file:line:message`/JSON output; `coverage
 --format html` is the human-facing option, meant for local review or
 publishing as a build artifact rather than for CI to parse.

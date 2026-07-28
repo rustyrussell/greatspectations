@@ -136,7 +136,7 @@ def cmd_coverage(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="spectate",
+        prog="greatspectate",
         description="Check that spec quotes in source comments match the spec",
     )
     parser.add_argument("--version", action="version", version=__version__)
@@ -202,7 +202,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     coverage_parser.add_argument(
         "--coverage", required=True, metavar="FILE",
-        help="Coverage file produced by 'spectate check --coverage=FILE'",
+        help="Coverage file produced by 'greatspectate check --coverage=FILE'",
     )
     coverage_parser.add_argument(
         "--source", action="append", metavar="NAME[:ID]",

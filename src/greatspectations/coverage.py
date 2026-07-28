@@ -2,7 +2,7 @@
 
 write_coverage() ports check_quotes.py's write_coverage() (one record
 per successfully-matched quote, appended atomically so parallel
-`spectate check` invocations don't interleave partial lines).
+`greatspectate check` invocations don't interleave partial lines).
 
 build_annotations() replaces bolt-coverage.py's Requirements-section-only
 gap report with a full-document line annotation: every physical line of

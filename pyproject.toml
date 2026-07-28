@@ -25,7 +25,7 @@ Homepage = "https://greatspectations.com"
 Repository = "https://github.com/rustyrussell/greatspectations"
 
 [project.scripts]
-spectate = "greatspectations.cli:main"
+greatspectate = "greatspectations.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

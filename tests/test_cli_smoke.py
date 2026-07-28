@@ -8,7 +8,7 @@ from greatspectations.cli import main
 def test_main_no_command_prints_help(capsys):
     rc = main([])
     assert rc == 0
-    assert "spectate" in capsys.readouterr().out
+    assert "greatspectate" in capsys.readouterr().out
 
 
 def test_version_flag(capsys):
