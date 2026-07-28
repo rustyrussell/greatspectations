@@ -3,9 +3,19 @@
 write_coverage() ports check_quotes.py's write_coverage() (one record
 per successfully-matched quote, appended atomically so parallel
 `spectate check` invocations don't interleave partial lines); the rest
-ports bolt-coverage.py's gap-reporting (by default restricted to
-"Requirements" sections, as before). Both are generalized with a source
-name column so coverage from multiple sources can share one file.
+ports bolt-coverage.py's gap-reporting, generalized with a source name
+column so coverage from multiple sources can share one file.
+
+By default (without --all-sections), gap-reporting considers a section
+only if its header names it a "Requirements" section (BOLT's
+convention) or its text contains an RFC 2119/8174 normative keyword
+(MUST/SHOULD/MAY/...) -- RFC and BIP documents rarely use the former,
+so the latter is what makes gap-reporting useful there. Within such a
+section, only the sentence/bullet actually containing a keyword is
+reported as a gap, not the whole uncovered span -- e.g. plain prose
+between requirements doesn't get flagged. --all-sections bypasses both
+the section filter and the per-sentence filter, reporting every byte of
+every section verbatim, as before.
 
 Coverage record: '{source} {id} {section_idx} {start} {end} {src_file}
 {src_line}' -- id is '-' for single-file sources.
@@ -169,50 +179,107 @@ def is_requirements_section(header: str) -> bool:
     return bool(_REQUIREMENTS_RE.search(header))
 
 
+# RFC 2119/8174 keywords. Deliberately case-sensitive: RFC 8174 limits
+# normative force to the all-caps form, which BOLT and most modern RFCs
+# follow -- and it's also what excludes plain English "must"/"should"
+# in older RFCs and most BIPs, neither of which reliably use the
+# convention (see README).
+_NORMATIVE_KEYWORD_RE = re.compile(
+    r"\b(?:MUST|SHALL|SHOULD|REQUIRED|RECOMMENDED|OPTIONAL|MAY)\b"
+)
+
+
+def has_normative_keyword(text: str) -> bool:
+    """True if text contains an RFC 2119/8174 normative keyword."""
+    return bool(_NORMATIVE_KEYWORD_RE.search(text))
+
+
+# Splits a section's text into sentence-ish chunks: after '.'/';'/':'
+# followed by a capital letter, or before a '- ' bullet marker (BOLT's
+# collapsed-whitespace bullet lists have no other separator between
+# items). Approximate on purpose -- it only controls how finely a gap
+# is chunked for reporting, not whether a quote matches.
+_SENTENCE_SPLIT_RE = re.compile(r"(?:(?<=[.;:])\s+(?=[A-Z])|\s+(?=-\s))")
+
+
+def _sentence_spans(text: str, start: int, end: int) -> List[Tuple[int, int]]:
+    """Split text[start:end] into trimmed (abs_start, abs_end) spans,
+    dropping any that are empty after trimming whitespace.
+    """
+    bounds = [start]
+    for m in _SENTENCE_SPLIT_RE.finditer(text, start, end):
+        bounds.append(m.start())
+        bounds.append(m.end())
+    bounds.append(end)
+
+    spans = []
+    for s, e in zip(bounds[0::2], bounds[1::2]):
+        while s < e and text[s].isspace():
+            s += 1
+        while e > s and text[e - 1].isspace():
+            e -= 1
+        if s < e:
+            spans.append((s, e))
+    return spans
+
+
+def _content_span(text: str, start: int, end: int) -> Optional[Tuple[int, int]]:
+    s, e = start, end
+    while s < e and text[s].isspace():
+        s += 1
+    while e > s and text[e - 1].isspace():
+        e -= 1
+    return (s, e) if s < e else None
+
+
 def _gaps_in_section(
     doc_path: str,
     text: str,
     linemap: List[int],
     section_records: Sequence[CoverageRecord],
+    filter_keywords: bool = True,
 ) -> List[GapLine]:
     lines: List[GapLine] = []
     content_start = section_content_start(text)
     merged = merge_intervals([(r.start, r.end) for r in section_records])
 
+    def emit_block(block_start: int, block_end: int) -> None:
+        if filter_keywords:
+            spans = [
+                span for span in _sentence_spans(text, block_start, block_end)
+                if has_normative_keyword(text[span[0]:span[1]])
+            ]
+        else:
+            span = _content_span(text, block_start, block_end)
+            spans = [span] if span else []
+        if not spans:
+            return
+
+        for r in adjacent_before(section_records, block_start):
+            lines.append(
+                GapLine(r.src_file, r.src_line, snippet(text, r.start, r.end, tail=True))
+            )
+        if filter_keywords:
+            for s, e in spans:
+                lineno = linemap[s] if s < len(linemap) else 1
+                lines.append(GapLine(doc_path, lineno, text[s:e][:120]))
+        else:
+            s, e = spans[0]
+            gap_lineno = linemap[block_start] if block_start < len(linemap) else 1
+            lines.append(GapLine(doc_path, gap_lineno, text[s:e][:120]))
+        for r in adjacent_after(section_records, block_end):
+            lines.append(
+                GapLine(r.src_file, r.src_line, snippet(text, r.start, r.end, tail=False))
+            )
+
     pos = content_start
     for m_start, m_end in merged:
         if m_start > pos:
-            gap_text = text[pos:m_start].strip()
-            if not gap_text:
-                pos = max(pos, m_end)
-                continue
-
-            gap_lineno = linemap[pos] if pos < len(linemap) else 1
-            before = adjacent_before(section_records, pos)
-            after = adjacent_after(section_records, m_start)
-
-            for r in before:
-                lines.append(
-                    GapLine(r.src_file, r.src_line, snippet(text, r.start, r.end, tail=True))
-                )
-            lines.append(GapLine(doc_path, gap_lineno, gap_text[:120]))
-            for r in after:
-                lines.append(
-                    GapLine(r.src_file, r.src_line, snippet(text, r.start, r.end, tail=False))
-                )
-
+            emit_block(pos, m_start)
         pos = max(pos, m_end)
 
     if pos < len(text):
-        gap_text = text[pos:].strip()
-        if gap_text:
-            gap_lineno = linemap[pos] if pos < len(linemap) else 1
-            before = adjacent_before(section_records, pos)
-            for r in before:
-                lines.append(
-                    GapLine(r.src_file, r.src_line, snippet(text, r.start, r.end, tail=True))
-                )
-            lines.append(GapLine(doc_path, gap_lineno, gap_text[:120]))
+        emit_block(pos, len(text))
 
     return lines
 
@@ -257,11 +324,18 @@ def find_gaps(
             text = section_text(section, mode)
             if not text.strip():
                 continue
-            if not all_sections and not is_requirements_section(section.header):
+            if (
+                not all_sections
+                and not is_requirements_section(section.header)
+                and not has_normative_keyword(text)
+            ):
                 continue
 
             records = by_section.get(si, [])
-            lines = _gaps_in_section(doc.path, text, section_linemap(section, mode), records)
+            lines = _gaps_in_section(
+                doc.path, text, section_linemap(section, mode), records,
+                filter_keywords=not all_sections,
+            )
             if lines:
                 any_uncovered = True
                 all_lines.extend(lines)

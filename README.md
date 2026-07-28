@@ -171,13 +171,24 @@ for specs where exact byte matching matters.
 
 `spectate check --coverage=FILE ...` appends a record for every quote
 that matched. `spectate coverage --coverage=FILE` then reports spec text
-in Requirements sections (or, with `--all-sections`, every section) that
-no quote covers:
+that no quote covers:
 
 ```
 spectate check --config specquotes.toml --coverage=.coverage src/*.c
 spectate coverage --config specquotes.toml --coverage=.coverage
 ```
+
+By default, a section is considered only if its header names it a
+Requirements section (BOLT's convention) or its text contains an RFC
+2119/8174 normative keyword -- `MUST`, `MUST NOT`, `SHALL`, `SHALL NOT`,
+`SHOULD`, `SHOULD NOT`, `REQUIRED`, `RECOMMENDED`, `OPTIONAL`, `MAY` --
+matched case-sensitively, since RFC 8174 limits normative force to the
+all-caps form (and it's what excludes plain English "must"/"should" in
+pre-2119 RFCs and most BIPs, which don't reliably use the convention).
+Within such a section, only the sentence or bullet that actually
+contains a keyword is reported as a gap -- surrounding prose,
+rationale, and examples aren't. `--all-sections` bypasses both filters
+and reports every section's uncovered text verbatim, keyword or not.
 
 Restrict to specific documents with `--source NAME[:ID]` (repeatable);
 by default every `(source, id)` pair found in the coverage file is

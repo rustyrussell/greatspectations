@@ -8,6 +8,7 @@ from greatspectations.coverage import (
     adjacent_after,
     adjacent_before,
     find_gaps,
+    has_normative_keyword,
     is_requirements_section,
     load_coverage,
     merge_intervals,
@@ -116,6 +117,17 @@ def test_is_requirements_section():
     assert not is_requirements_section("### Rationale")
 
 
+def test_has_normative_keyword():
+    assert has_normative_keyword("A server MUST close the connection.")
+    assert has_normative_keyword("Nodes SHOULD NOT retry immediately.")
+    assert has_normative_keyword("This field is OPTIONAL.")
+    # RFC 8174: only the all-caps form is normative -- ordinary English
+    # "must"/"should", and "May" as e.g. a month name, don't count.
+    assert not has_normative_keyword("A server must close the connection.")
+    assert not has_normative_keyword("This was fixed in May 2020.")
+    assert not has_normative_keyword("Rationale and background only.")
+
+
 SPEC_TEXT = """# Century Metadata Format Specification
 
 ### Reader Requirements
@@ -201,6 +213,104 @@ def test_find_gaps_all_sections_includes_rationale(tmp_path):
     )
     assert any_uncovered is True
     assert any("Uncovered rationale" in g.text for g in gap_lines)
+
+
+RFC_STYLE_TEXT = """# Example Protocol
+
+## Message Format
+
+Implementations MUST validate the checksum field before processing the message. This section explains the historical rationale for the checksum algorithm, which is not itself a requirement. A receiver SHOULD log invalid checksums for diagnostic purposes.
+"""
+
+
+def test_find_gaps_uses_keywords_without_requirements_header(tmp_path):
+    # RFCs rarely have a section literally titled "Requirements" (unlike
+    # BOLT) -- normative keywords are what makes this section eligible.
+    spec_path = tmp_path / "rfcstyle.md"
+    spec_path.write_text(RFC_STYLE_TEXT)
+    config = cmdata_config(spec_path)
+
+    doc = formats.load("markdown", str(spec_path))
+    headers = [s.header for s in doc.sections]
+    si = headers.index("## Message Format")
+    section = doc.sections[si]
+    covered_text = (
+        "Implementations MUST validate the checksum field before "
+        "processing the message."
+    )
+    start = section.text.index(covered_text)
+    end = start + len(covered_text)
+
+    coverage_path = tmp_path / "coverage.txt"
+    coverage_path.write_text("cmdata-spec - {} {} {} src.c 1\n".format(si, start, end))
+
+    gap_lines, any_uncovered = find_gaps(config, str(coverage_path))
+    assert any_uncovered is True
+    texts = [g.text for g in gap_lines]
+    assert any("SHOULD log invalid checksums" in t for t in texts)
+    # Non-normative rationale prose between the two requirements is
+    # uncovered too, but shouldn't be flagged as a gap.
+    assert not any("historical rationale" in t for t in texts)
+
+
+BIP_STYLE_TEXT = """# Example BIP
+
+## Specification
+
+Wallets must derive the address using the standard algorithm described
+above, and clients should verify signatures before broadcasting a
+transaction.
+"""
+
+
+def test_find_gaps_ignores_lowercase_prose_without_requirements_header(tmp_path):
+    # BIPs rarely capitalize MUST/SHOULD the RFC 2119 way -- without
+    # that signal or a "Requirements" header, there's nothing reliable
+    # to flag, so the section is skipped rather than false-flagged.
+    spec_path = tmp_path / "bipstyle.md"
+    spec_path.write_text(BIP_STYLE_TEXT)
+    config = cmdata_config(spec_path)
+
+    coverage_path = tmp_path / "coverage.txt"
+    coverage_path.write_text("")
+
+    gap_lines, any_uncovered = find_gaps(
+        config, str(coverage_path), doc_keys=[("cmdata-spec", None)]
+    )
+    assert gap_lines == []
+    assert any_uncovered is False
+
+
+BOLT_STYLE_TEXT = """# BOLT Example
+
+### Requirements
+
+A sending node:
+  - MUST set `funding_satoshis` to the amount it wishes to fund.
+  - MUST NOT send a negative `funding_satoshis`.
+  - if it is the funder:
+    - MUST set `channel_reserve_satoshis` greater than or equal to `dust_limit_satoshis`.
+"""
+
+
+def test_find_gaps_splits_bullets_into_separate_gap_lines(tmp_path):
+    spec_path = tmp_path / "boltstyle.md"
+    spec_path.write_text(BOLT_STYLE_TEXT)
+    config = cmdata_config(spec_path)
+
+    coverage_path = tmp_path / "coverage.txt"
+    coverage_path.write_text("")
+
+    gap_lines, any_uncovered = find_gaps(
+        config, str(coverage_path), doc_keys=[("cmdata-spec", None)]
+    )
+    assert any_uncovered is True
+    texts = [g.text for g in gap_lines]
+    assert any("funding_satoshis` to the amount" in t for t in texts)
+    assert any("MUST NOT send a negative" in t for t in texts)
+    assert any("channel_reserve_satoshis" in t for t in texts)
+    # Each requirement is its own gap line, not one merged blob.
+    assert len(gap_lines) >= 3
 
 
 def test_find_gaps_skips_unresolvable_source(tmp_path, capsys):
