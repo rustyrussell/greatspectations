@@ -1,0 +1,27 @@
+# Example config for `make examples` (see examples/generate.py).
+# The "spec" is the opening paragraph of Dickens' "A Tale of Two
+# Cities" -- picked because it's public domain, instantly recognizable,
+# and has nothing to do with software, which makes the point that
+# greatspectate checks quotes against *any* text source, not just specs.
+
+[sources.dickens]
+format = "markdown"
+dir = "spec"
+pattern = "{id:02d}-*.md"
+comment_marker = "DICKENS"
+
+# Each clause of the opening paragraph is one line (see the spec file's
+# preamble comment on why it's wrapped this way) -- so coverage doesn't
+# have to guess from RFC 2119 keywords, and a plain line number per
+# clause is enough (no line:col spans needed).
+[sources.dickens.normative]
+1 = [
+  "10",     # It was the best of times, it was the worst of times,
+  "11",     # it was the age of wisdom, it was the age of foolishness,
+  "12",     # it was the epoch of belief, it was the epoch of incredulity,
+  "13",     # it was the season of Light, it was the season of Darkness,
+  "14",     # it was the spring of hope, it was the winter of despair,
+  "15",     # we had everything before us, we had nothing before us,
+  "16",     # we were all going direct to Heaven, we were all going direct the other way
+  "17-19",  # in short, ... in the superlative degree of comparison only.
+]
