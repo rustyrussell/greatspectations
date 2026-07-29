@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Regenerate examples/examples.md, and the worked-example tabs in
-web/index.html, from real `greatspectate` output against the
-spec/source files in this directory. Run via `make examples` --
-neither examples.md nor the marked block in index.html is hand-edited,
-both get overwritten.
+"""Regenerate examples/examples.md, the worked-example tabs in
+web/index.html, and the closest-match example in ../README.md, from
+real `greatspectate` output against the spec/source files in this
+directory. Run via `make examples` -- examples.md and the marked
+blocks in index.html/README.md are never hand-edited, all get
+overwritten.
 """
 
 import html
@@ -13,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 WEB_INDEX = ROOT.parent / "web" / "index.html"
+README = ROOT.parent / "README.md"
 COVERAGE = ROOT / ".coverage"
 
 # The absolute path config.py resolves 'dir = "spec"' to is specific to
@@ -109,8 +111,16 @@ def main():
     )
     print("wrote", ROOT / "examples.md")
 
-    inject_web_fragment(render_web_fragment(lang_sections, coverage_output))
+    inject_marked_block(
+        WEB_INDEX, WEB_BEGIN_MARKER, WEB_END_MARKER,
+        render_web_fragment(lang_sections, coverage_output),
+    )
     print("updated", WEB_INDEX)
+
+    note = note_example(lang_sections)
+    if note is not None:
+        inject_marked_block(README, README_BEGIN_MARKER, README_END_MARKER, note)
+        print("updated", README)
 
     COVERAGE.unlink(missing_ok=True)
 
@@ -257,18 +267,41 @@ def render_web_fragment(lang_sections, coverage_output):
     ])
 
 
-BEGIN_MARKER = "<!-- BEGIN GENERATED EXAMPLE (examples/generate.py -- do not hand-edit) -->"
-END_MARKER = "<!-- END GENERATED EXAMPLE -->"
-
-
-def inject_web_fragment(fragment_html):
-    text = WEB_INDEX.read_text()
-    start = text.index(BEGIN_MARKER) + len(BEGIN_MARKER)
-    end = text.index(END_MARKER)
+def inject_marked_block(path, begin_marker, end_marker, content):
+    """Replace the text strictly between begin_marker and end_marker in
+    path with content, leaving the markers and everything outside them
+    untouched. Raises if the markers aren't found, in order.
+    """
+    text = path.read_text()
+    start = text.index(begin_marker) + len(begin_marker)
+    end = text.index(end_marker)
     if start > end:
-        raise ValueError("BEGIN/END GENERATED EXAMPLE markers out of order in {}".format(WEB_INDEX))
-    new_text = text[:start] + "\n" + fragment_html + "\n" + text[end:]
-    WEB_INDEX.write_text(new_text)
+        raise ValueError(
+            "BEGIN/END markers out of order in {}: {!r} / {!r}".format(
+                path, begin_marker, end_marker
+            )
+        )
+    path.write_text(text[:start] + "\n" + content + "\n" + text[end:])
+
+
+WEB_BEGIN_MARKER = "<!-- BEGIN GENERATED EXAMPLE (examples/generate.py -- do not hand-edit) -->"
+WEB_END_MARKER = "<!-- END GENERATED EXAMPLE -->"
+
+README_BEGIN_MARKER = "<!-- BEGIN GENERATED NOTE EXAMPLE (examples/generate.py -- do not hand-edit) -->"
+README_END_MARKER = "<!-- END GENERATED NOTE EXAMPLE -->"
+
+
+def note_example(lang_sections):
+    """The 'cannot find match' + 'note: closest match' line pair from
+    whichever language section actually failed with a note attached, for
+    the README's example -- pulled from real output, not hand-typed.
+    """
+    for sec in lang_sections:
+        lines = sec["output"].splitlines()
+        for i, line in enumerate(lines):
+            if "cannot find match" in line and i + 1 < len(lines) and " note: " in lines[i + 1]:
+                return fence("\n".join([line, lines[i + 1]]))
+    return None
 
 
 if __name__ == "__main__":

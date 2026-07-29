@@ -642,6 +642,7 @@ const VERDICT: &amp;str = "the superlative degree of comparison only";
 <p class="result-chip fail"><span class="dot" aria-hidden="true"></span><span class="msg"><strong>greatspectate check</strong> &mdash; one quote doesn't match</span></p>
 <pre class="cmd-output"><code>$ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '/* ' --comment-continue '*' --comment-end '*/' src/tale.rs
 <span class="cmd-fail">src/tale.rs:8:cannot find match</span>
+<span class="cmd-line">01-the-period.md:10: note: closest match (94%): 'It was the best of times, it was the worst of times,'</span>
 <span class="cmd-line">src/tale.rs:13:Matched 'we had everything before us, we had nothing before us,'</span>
 <span class="cmd-line">src/tale.rs:18:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'</span></code></pre>
 </div>

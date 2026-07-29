@@ -124,6 +124,7 @@ This **fails**:
 ```console
 $ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '/* ' --comment-continue '*' --comment-end '*/' src/tale.rs
 src/tale.rs:8:cannot find match
+01-the-period.md:10: note: closest match (94%): 'It was the best of times, it was the worst of times,'
 src/tale.rs:13:Matched 'we had everything before us, we had nothing before us,'
 src/tale.rs:18:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'
 ```

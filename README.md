@@ -44,12 +44,15 @@ that's merely *similar* -- the wording probably drifted rather than
 vanished -- and if it finds something reasonably close, prints a
 gcc-style `note:` line pointing at it (the same `file:line:` format
 your editor already knows how to jump to, e.g. from Emacs' `compile`
-or Vim's quickfix):
+or Vim's quickfix). From the worked example in `examples/` (Rust
+misquotes "worst" as "blurst" -- see [examples.md](examples/examples.md)):
 
+<!-- BEGIN GENERATED NOTE EXAMPLE (examples/generate.py -- do not hand-edit) -->
 ```
-src/invoice.c:12:cannot find match
-11-payment-encoding.md:6: note: closest match (85%): 'MUST set `payment_hash` to the SHA256 of `payment_preimage`. - MUST set'
+src/tale.rs:8:cannot find match
+01-the-period.md:10: note: closest match (94%): 'It was the best of times, it was the worst of times,'
 ```
+<!-- END GENERATED NOTE EXAMPLE -->
 
 This is a best-effort hint (stdlib `difflib`, no network, fully
 deterministic) -- it never affects whether a quote passes or fails, and
