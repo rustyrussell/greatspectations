@@ -413,6 +413,81 @@
   .result-chip .msg strong { color: var(--ink); font-weight: 600; }
 
   [data-state="drift"] .result-chip .dot { background: var(--drift); }
+  .result-chip.fail .dot { background: var(--drift); }
+
+  /* ---------- worked-example tabs ---------- */
+
+  .example-tabs {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .example-tabs .panel-head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1.15rem;
+    border-bottom: 1px solid var(--rule);
+    overflow-x: auto;
+  }
+
+  .tab-list {
+    display: inline-flex;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 2px;
+    gap: 2px;
+    flex: none;
+  }
+
+  .tab-list button {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border: none;
+    background: transparent;
+    color: var(--ink-faint);
+    padding: 0.32rem 0.8rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .tab-list button[aria-selected="true"] {
+    background: var(--bg-code);
+    color: var(--ink);
+  }
+
+  .tab-panel[hidden] { display: none; }
+
+  .tab-panel pre {
+    margin: 0;
+    padding: 1.35rem 1.15rem;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.65;
+    background: var(--bg-code);
+  }
+
+  .tab-panel pre.cmd-output {
+    border-top: 1px dashed var(--rule);
+    color: var(--ink-dim);
+  }
+
+  .tab-panel pre.cmd-output .cmd-line { color: var(--ink-faint); }
+  .tab-panel pre.cmd-output .cmd-fail { color: var(--drift); }
+
+  .tab-panel .result-chip { border-top: none; border-bottom: 1px dashed var(--rule); }
+
+  .cov-gap { color: var(--drift); background: var(--drift-dim); }
+  .cov-covered { color: var(--match); background: var(--match-dim); }
+  .cov-neutral { color: var(--ink-faint); }
+  .cov-mentions { color: var(--ink-faint); }
 
   /* ---------- why-it-matters / marginalia ---------- */
 
@@ -495,6 +570,7 @@
     <nav class="site-nav" aria-label="Section">
       <a href="#catches">What it catches</a>
       <a href="#example">Example</a>
+      <a href="#worked-example">Worked example</a>
       <a href="#why">Why it Matters</a>
       <a href="#install">Install</a>
     </nav>
@@ -576,10 +652,136 @@
     </div>
   </section>
 
-  <section class="block" id="why">
+  <section class="block" id="worked-example">
     <div class="wrap">
       <div class="section-head">
         <span class="section-num">§3</span>
+        <h2 class="section-title">The Period, in Three Languages</h2>
+      </div>
+      <p class="hero-tagline" style="margin-bottom: 1.75rem;">A real, runnable example: Python, C++, and Rust each quote different clauses of the same paragraph; one of them botches a quote, one clause never gets quoted at all. Generated straight from <code>examples/generate.py</code> running the actual tool — see <a href="https://github.com/rustyrussell/greatspectations/tree/master/examples">examples/</a> in the repo.</p>
+
+      <!-- BEGIN GENERATED EXAMPLE (examples/generate.py -- do not hand-edit) -->
+<div class="example-tabs" id="worked-example-tabs">
+<div class="panel-head">
+<div class="tab-list" role="tablist" aria-label="Language / coverage">
+<button role="tab" aria-selected="true" data-tab="python">Python</button>
+<button role="tab" aria-selected="false" data-tab="cpp">C++</button>
+<button role="tab" aria-selected="false" data-tab="rust">Rust</button>
+<button role="tab" aria-selected="false" data-tab="coverage">Coverage</button>
+</div>
+</div>
+<div class="tab-panel" data-tab-panel="python">
+<pre class="src"><code>"""Great Spectations demo: quoting Dickens instead of a protocol spec.
+
+Nothing here is a real "requirement" -- it's just prose from a novel,
+used to show that greatspectate checks any text source, not only specs.
+"""
+
+# DICKENS #1: it was the age of wisdom, it was the age of foolishness,
+WISDOM = "the age of wisdom"
+FOOLISHNESS = "the age of foolishness"
+
+# DICKENS #1: it was the spring of hope, it was the winter of despair,
+HOPE = "the spring of hope"
+DESPAIR = "the winter of despair"
+
+# DICKENS #1: we were all going direct to Heaven, we were all going
+# direct the other way
+HEAVEN = "direct to Heaven"
+THE_OTHER_WAY = "direct the other way"
+</code></pre>
+<p class="result-chip ok"><span class="dot" aria-hidden="true"></span><span class="msg"><strong>greatspectate check</strong> &mdash; all quotes match</span></p>
+<pre class="cmd-output"><code>$ greatspectate check --config specquotes.toml --coverage .coverage -v -k src/tale.py
+<span class="cmd-line">src/tale.py:7:Matched 'it was the age of wisdom, it was the age of foolishness,'</span>
+<span class="cmd-line">src/tale.py:11:Matched 'it was the spring of hope, it was the winter of despair,'</span>
+<span class="cmd-line">src/tale.py:15:Matched 'we were all going direct to Heaven, we were all going direct the other way'</span></code></pre>
+</div>
+<div class="tab-panel" data-tab-panel="cpp" hidden>
+<pre class="src"><code>// Great Spectations demo: quoting Dickens instead of a protocol spec.
+//
+// Nothing here is a real "requirement" -- it's just prose from a
+// novel, used to show that greatspectate checks any text source, not
+// only specs.
+
+// DICKENS #1: it was the epoch of belief, it was the epoch of incredulity,
+const char *BELIEF = "the epoch of belief";
+const char *INCREDULITY = "the epoch of incredulity";
+
+// DICKENS #1: it was the spring of hope, it was the winter of despair,
+const char *HOPE = "the spring of hope";
+const char *DESPAIR = "the winter of despair";
+
+// DICKENS #1: in short, the period was so far like the present period,
+// that some of its noisiest authorities insisted on its being received,
+// for good or for evil, in the superlative degree of comparison only.
+const char *VERDICT = "the superlative degree of comparison only";
+</code></pre>
+<p class="result-chip ok"><span class="dot" aria-hidden="true"></span><span class="msg"><strong>greatspectate check</strong> &mdash; all quotes match</span></p>
+<pre class="cmd-output"><code>$ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '// ' --comment-continue '//' src/tale.cpp
+<span class="cmd-line">src/tale.cpp:7:Matched 'it was the epoch of belief, it was the epoch of incredulity,'</span>
+<span class="cmd-line">src/tale.cpp:11:Matched 'it was the spring of hope, it was the winter of despair,'</span>
+<span class="cmd-line">src/tale.cpp:15:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'</span></code></pre>
+</div>
+<div class="tab-panel" data-tab-panel="rust" hidden>
+<pre class="src"><code>/* Great Spectations demo: quoting Dickens instead of a protocol spec.
+ *
+ * Nothing here is a real "requirement" -- it's just prose from a
+ * novel, used to show that greatspectate checks any text source, not
+ * only specs.
+ */
+
+/* DICKENS #1: It was the best of times, it was the blurst of times,
+ */
+const BEST: &amp;str = "the best of times";
+const WORST: &amp;str = "the worst of times"; // "You stupid monkey!"
+
+/* DICKENS #1: we had everything before us, we had nothing before us,
+ */
+const EVERYTHING: &amp;str = "everything before us";
+const NOTHING: &amp;str = "nothing before us";
+
+/* DICKENS #1: in short, the period was so far like the present period,
+ * that some of its noisiest authorities insisted on its being received,
+ * for good or for evil, in the superlative degree of comparison only.
+ */
+const VERDICT: &amp;str = "the superlative degree of comparison only";
+</code></pre>
+<p class="result-chip fail"><span class="dot" aria-hidden="true"></span><span class="msg"><strong>greatspectate check</strong> &mdash; one quote doesn't match</span></p>
+<pre class="cmd-output"><code>$ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '/* ' --comment-continue '*' --comment-end '*/' src/tale.rs
+<span class="cmd-fail">src/tale.rs:8:cannot find match</span>
+<span class="cmd-line">src/tale.rs:13:Matched 'we had everything before us, we had nothing before us,'</span>
+<span class="cmd-line">src/tale.rs:18:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'</span></code></pre>
+</div>
+<div class="tab-panel" data-tab-panel="coverage" hidden>
+<pre class="cov"><code><span class="cov-neutral">    01-the-period.md:1:&lt;!-- Public domain: Charles Dickens, "A Tale of Two Cities" (1859).</span>
+<span class="cov-neutral">    01-the-period.md:2:     Text from Project Gutenberg EBook #98 (https://www.gutenberg.org/ebooks/98).</span>
+<span class="cov-neutral">    01-the-period.md:3:     Line-wrapped one clause per line (Gutenberg's own wrapping runs</span>
+<span class="cov-neutral">    01-the-period.md:4:     several clauses together per line, which -- fittingly for a demo</span>
+<span class="cov-neutral">    01-the-period.md:5:     of coverage tooling -- makes individual clauses impossible to</span>
+<span class="cov-neutral">    01-the-period.md:6:     tell apart at line granularity). --&gt;</span>
+<span class="cov-neutral">    01-the-period.md:7:</span>
+<span class="cov-neutral">    01-the-period.md:8:# Book the First -- Chapter I: The Period</span>
+<span class="cov-neutral">    01-the-period.md:9:</span>
+<span class="cov-gap">*** 01-the-period.md:10:It was the best of times, it was the worst of times,</span>
+<span class="cov-covered">+   01-the-period.md:11:it was the age of wisdom, it was the age of foolishness,</span>
+<span class="cov-covered">+   01-the-period.md:12:it was the epoch of belief, it was the epoch of incredulity,</span>
+<span class="cov-gap">*** 01-the-period.md:13:it was the season of Light, it was the season of Darkness,</span>
+<span class="cov-covered">++  01-the-period.md:14:it was the spring of hope, it was the winter of despair,</span>
+<span class="cov-covered">+   01-the-period.md:15:we had everything before us, we had nothing before us,</span>
+<span class="cov-covered">+   01-the-period.md:16:we were all going direct to Heaven, we were all going direct the other way--</span>
+<span class="cov-covered">++  01-the-period.md:17:in short, the period was so far like the present period, that some of</span>
+<span class="cov-covered">++  01-the-period.md:18:its noisiest authorities insisted on its being received, for good or</span>
+<span class="cov-covered">++  01-the-period.md:19:for evil, in the superlative degree of comparison only.</span></code></pre>
+</div>
+</div>
+<!-- END GENERATED EXAMPLE -->
+    </div>
+  </section>
+
+  <section class="block" id="why">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-num">§4</span>
         <h2 class="section-title">I say, Pip, old chap!</h2>
       </div>
       <div class="marginalia">
@@ -665,6 +867,27 @@
     });
 
     setState("match");
+
+    document.querySelectorAll(".tab-list[role=tablist]").forEach(function (list) {
+      var container = list.closest(".example-tabs");
+      if (!container) return;
+      var panels = container.querySelectorAll("[data-tab-panel]");
+
+      function selectTab(name) {
+        list.querySelectorAll("button[data-tab]").forEach(function (b) {
+          b.setAttribute("aria-selected", String(b.getAttribute("data-tab") === name));
+        });
+        panels.forEach(function (p) {
+          p.hidden = p.getAttribute("data-tab-panel") !== name;
+        });
+      }
+
+      list.addEventListener("click", function (e) {
+        var btn = e.target.closest("button[data-tab]");
+        if (!btn) return;
+        selectTab(btn.getAttribute("data-tab"));
+      });
+    });
   })();
 </script>
 

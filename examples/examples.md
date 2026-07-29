@@ -134,25 +134,25 @@ src/tale.rs:18:Matched 'in short, the period was so far like the present period,
 
 ```console
 $ greatspectate coverage --config specquotes.toml --coverage .coverage --source dickens:1
-    /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:1:<!-- Public domain: Charles Dickens, "A Tale of Two Cities" (1859).
-    /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:2:     Text from Project Gutenberg EBook #98 (https://www.gutenberg.org/ebooks/98).
-    /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:3:     Line-wrapped one clause per line (Gutenberg's own wrapping runs
-    /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:4:     several clauses together per line, which -- fittingly for a demo
-    /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:5:     of coverage tooling -- makes individual clauses impossible to
-    /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:6:     tell apart at line granularity). -->
-    /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:7:
-    /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:8:# Book the First -- Chapter I: The Period
-    /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:9:
-*** /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:10:It was the best of times, it was the worst of times,
-+   /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:11:it was the age of wisdom, it was the age of foolishness,
-+   /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:12:it was the epoch of belief, it was the epoch of incredulity,
-*** /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:13:it was the season of Light, it was the season of Darkness,
-++  /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:14:it was the spring of hope, it was the winter of despair,
-+   /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:15:we had everything before us, we had nothing before us,
-+   /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:16:we were all going direct to Heaven, we were all going direct the other way--
-++  /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:17:in short, the period was so far like the present period, that some of
-++  /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:18:its noisiest authorities insisted on its being received, for good or
-++  /home/rusty/devel/cvs/greatspectations/examples/spec/01-the-period.md:19:for evil, in the superlative degree of comparison only.
+    01-the-period.md:1:<!-- Public domain: Charles Dickens, "A Tale of Two Cities" (1859).
+    01-the-period.md:2:     Text from Project Gutenberg EBook #98 (https://www.gutenberg.org/ebooks/98).
+    01-the-period.md:3:     Line-wrapped one clause per line (Gutenberg's own wrapping runs
+    01-the-period.md:4:     several clauses together per line, which -- fittingly for a demo
+    01-the-period.md:5:     of coverage tooling -- makes individual clauses impossible to
+    01-the-period.md:6:     tell apart at line granularity). -->
+    01-the-period.md:7:
+    01-the-period.md:8:# Book the First -- Chapter I: The Period
+    01-the-period.md:9:
+*** 01-the-period.md:10:It was the best of times, it was the worst of times,
++   01-the-period.md:11:it was the age of wisdom, it was the age of foolishness,
++   01-the-period.md:12:it was the epoch of belief, it was the epoch of incredulity,
+*** 01-the-period.md:13:it was the season of Light, it was the season of Darkness,
+++  01-the-period.md:14:it was the spring of hope, it was the winter of despair,
++   01-the-period.md:15:we had everything before us, we had nothing before us,
++   01-the-period.md:16:we were all going direct to Heaven, we were all going direct the other way--
+++  01-the-period.md:17:in short, the period was so far like the present period, that some of
+++  01-the-period.md:18:its noisiest authorities insisted on its being received, for good or
+++  01-the-period.md:19:for evil, in the superlative degree of comparison only.
 ```
 
 Two gaps show up, for two different reasons: the opening line was *attempted* (Rust's "blurst of times") but the quote is wrong, so it never matched anything; the "Light"/"Darkness" line was never quoted by anyone at all. `check` catches the first kind immediately -- `coverage` is what catches the second.

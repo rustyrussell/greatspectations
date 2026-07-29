@@ -1,19 +1,29 @@
 #!/usr/bin/env python3
-"""Regenerate examples/examples.md from real `greatspectate` output
-against the spec/source files in this directory. Run via `make
-examples` -- examples.md is generated, never hand-edited.
+"""Regenerate examples/examples.md, and the worked-example tabs in
+web/index.html, from real `greatspectate` output against the
+spec/source files in this directory. Run via `make examples` --
+neither examples.md nor the marked block in index.html is hand-edited,
+both get overwritten.
 """
 
+import html
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+WEB_INDEX = ROOT.parent / "web" / "index.html"
 COVERAGE = ROOT / ".coverage"
+
+# The absolute path config.py resolves 'dir = "spec"' to is specific to
+# whatever machine generated this -- replace it with a clean relative
+# form before either generated doc is written.
+SPEC_DIR_PREFIX = str(ROOT / "spec") + "/"
 
 LANGUAGES = [
     {
         "name": "Python",
+        "tab": "python",
         "file": "src/tale.py",
         "fence_lang": "python",
         "flags": [],
@@ -21,6 +31,7 @@ LANGUAGES = [
     },
     {
         "name": "C++",
+        "tab": "cpp",
         "file": "src/tale.cpp",
         "fence_lang": "cpp",
         "flags": ["--comment-start", "// ", "--comment-continue", "//"],
@@ -28,6 +39,7 @@ LANGUAGES = [
     },
     {
         "name": "Rust",
+        "tab": "rust",
         "file": "src/tale.rs",
         "fence_lang": "rust",
         "flags": [
@@ -52,6 +64,10 @@ def run(args):
     )
 
 
+def clean_paths(text):
+    return text.replace(SPEC_DIR_PREFIX, "")
+
+
 def fence(text, lang=""):
     return "```{}\n{}\n```".format(lang, text.rstrip("\n"))
 
@@ -70,31 +86,36 @@ def main():
             "check", "--config", "specquotes.toml", "--coverage", ".coverage",
             "-v", "-k", *lang["flags"], lang["file"],
         ])
-        output = result.stdout.rstrip("\n")
+        output = clean_paths(result.stdout.rstrip("\n"))
         display_cmd = (
             "greatspectate check --config specquotes.toml --coverage .coverage "
             "-v -k {}{}".format(lang["display_flags"], lang["file"])
         )
         lang_sections.append({
-            "name": lang["name"], "fence_lang": lang["fence_lang"],
-            "source": source_code, "display_cmd": display_cmd, "output": output,
-            "ok": result.returncode == 0,
+            **lang, "source": source_code, "display_cmd": display_cmd,
+            "output": output, "ok": result.returncode == 0,
         })
 
     coverage_result = run([
         "coverage", "--config", "specquotes.toml", "--coverage", ".coverage",
         "--source", "dickens:1",
     ])
-    coverage_output = coverage_result.stdout.rstrip("\n")
+    coverage_output = clean_paths(coverage_result.stdout.rstrip("\n"))
 
     spec_text = (ROOT / "spec" / "01-the-period.md").read_text()
 
-    (ROOT / "examples.md").write_text(render(lang_sections, coverage_output, spec_text))
-    COVERAGE.unlink(missing_ok=True)
+    (ROOT / "examples.md").write_text(
+        render_markdown(lang_sections, coverage_output, spec_text)
+    )
     print("wrote", ROOT / "examples.md")
 
+    inject_web_fragment(render_web_fragment(lang_sections, coverage_output))
+    print("updated", WEB_INDEX)
 
-def render(lang_sections, coverage_output, spec_text):
+    COVERAGE.unlink(missing_ok=True)
+
+
+def render_markdown(lang_sections, coverage_output, spec_text):
     parts = [
         "# Great Spectations, worked example",
         "",
@@ -152,6 +173,102 @@ def render(lang_sections, coverage_output, spec_text):
         "",
     ]
     return "\n".join(parts)
+
+
+def _esc(text):
+    return html.escape(text, quote=False)
+
+
+def _tab_button(lang, selected):
+    return '<button role="tab" aria-selected="{}" data-tab="{}">{}</button>'.format(
+        "true" if selected else "false", lang["tab"], _esc(lang["name"])
+    )
+
+
+def _cmd_output_html(output):
+    """Color a captured check/coverage command's output line-by-line:
+    a 'cannot find match' failure line stands out, everything else is
+    plain -- mirrors how the terminal output actually reads.
+    """
+    lines = []
+    for line in output.splitlines():
+        cls = "cmd-fail" if "cannot find match" in line else "cmd-line"
+        lines.append('<span class="{}">{}</span>'.format(cls, _esc(line)))
+    return "\n".join(lines)
+
+
+def _lang_panel(sec, selected):
+    verdict_cls = "ok" if sec["ok"] else "fail"
+    verdict = "all quotes match" if sec["ok"] else "one quote doesn't match"
+    return "\n".join([
+        '<div class="tab-panel" data-tab-panel="{}"{}>'.format(
+            sec["tab"], "" if selected else " hidden"
+        ),
+        '<pre class="src"><code>{}</code></pre>'.format(_esc(sec["source"])),
+        '<p class="result-chip {}"><span class="dot" aria-hidden="true"></span>'
+        '<span class="msg"><strong>greatspectate check</strong> &mdash; '
+        '{}</span></p>'.format(verdict_cls, verdict),
+        '<pre class="cmd-output"><code>$ {}\n{}</code></pre>'.format(
+            _esc(sec["display_cmd"]), _cmd_output_html(sec["output"])
+        ),
+        '</div>',
+    ])
+
+
+def _coverage_panel(coverage_output, selected):
+    lines = []
+    for line in coverage_output.splitlines():
+        prefix, _, rest = line.partition(" ")
+        if prefix == "***":
+            cls = "cov-gap"
+        elif prefix.startswith("+"):
+            cls = "cov-covered"
+        else:
+            cls = "cov-neutral"
+            prefix = "   "  # partition() only ate one of the 3 prefix spaces
+            rest = line.strip()
+        lines.append('<span class="{}">{} {}</span>'.format(cls, prefix, _esc(rest)))
+    return "\n".join([
+        '<div class="tab-panel" data-tab-panel="coverage"{}>'.format(
+            "" if selected else " hidden"
+        ),
+        '<pre class="cov"><code>{}</code></pre>'.format("\n".join(lines)),
+        '</div>',
+    ])
+
+
+def render_web_fragment(lang_sections, coverage_output):
+    tabs = [_tab_button(sec, i == 0) for i, sec in enumerate(lang_sections)]
+    tabs.append(
+        '<button role="tab" aria-selected="false" data-tab="coverage">Coverage</button>'
+    )
+    panels = [_lang_panel(sec, i == 0) for i, sec in enumerate(lang_sections)]
+    panels.append(_coverage_panel(coverage_output, False))
+
+    return "\n".join([
+        '<div class="example-tabs" id="worked-example-tabs">',
+        '<div class="panel-head">',
+        '<div class="tab-list" role="tablist" aria-label="Language / coverage">',
+        *tabs,
+        '</div>',
+        '</div>',
+        *panels,
+        '</div>',
+    ])
+
+
+BEGIN_MARKER = "<!-- BEGIN GENERATED EXAMPLE (examples/generate.py -- do not hand-edit) -->"
+END_MARKER = "<!-- END GENERATED EXAMPLE -->"
+
+
+def inject_web_fragment(fragment_html):
+    text = WEB_INDEX.read_text()
+    start = text.index(BEGIN_MARKER) + len(BEGIN_MARKER)
+    end = text.index(END_MARKER)
+    if start > end:
+        raise ValueError("BEGIN/END GENERATED EXAMPLE markers out of order in {}".format(WEB_INDEX))
+    new_text = text[:start] + "\n" + fragment_html + "\n" + text[end:]
+    WEB_INDEX.write_text(new_text)
 
 
 if __name__ == "__main__":
