@@ -1,6 +1,7 @@
 import pytest
 
 from greatspectations.config import ConfigError, load
+from greatspectations.normative import NormativeSpan
 
 
 VALID_TOML = """
@@ -276,3 +277,115 @@ def test_resolve_dir_source_multiple_matches(tmp_path):
     config = load(path)
     with pytest.raises(ConfigError, match="multiple files matching"):
         config["bolt"].resolve(11)
+
+
+def test_no_normative_defaults_to_empty(tmp_path):
+    path = write_config(tmp_path, VALID_TOML)
+    config = load(path)
+    assert config["bolt"].normative == {}
+    assert config["cmdata-spec"].normative == {}
+
+
+def test_file_source_normative_flat_list(tmp_path):
+    path = write_config(
+        tmp_path,
+        """
+        [sources.cmdata-spec]
+        format = "markdown"
+        file = "SPECIFICATION.md"
+        normative = ["5-8", "42:10-50:20"]
+        """,
+    )
+    config = load(path)
+    assert config["cmdata-spec"].normative == {
+        None: [
+            NormativeSpan(5, None, 8, None),
+            NormativeSpan(42, 10, 50, 20),
+        ]
+    }
+
+
+def test_dir_source_normative_table_by_id(tmp_path):
+    path = write_config(
+        tmp_path,
+        """
+        [sources.bolt]
+        format = "markdown"
+        dir = "lightning-rfc"
+        pattern = "{id:02d}-*.md"
+
+        [sources.bolt.normative]
+        11 = ["5-8"]
+        "2" = ["100-120", "200"]
+        """,
+    )
+    config = load(path)
+    assert config["bolt"].normative == {
+        11: [NormativeSpan(5, None, 8, None)],
+        2: [
+            NormativeSpan(100, None, 120, None),
+            NormativeSpan(200, None, 200, None),
+        ],
+    }
+
+
+def test_dir_source_normative_rejects_flat_list(tmp_path):
+    path = write_config(
+        tmp_path,
+        """
+        [sources.bolt]
+        format = "markdown"
+        dir = "lightning-rfc"
+        pattern = "{id:02d}-*.md"
+        normative = ["5-8"]
+        """,
+    )
+    with pytest.raises(ConfigError, match="'normative' must be a table"):
+        load(path)
+
+
+def test_file_source_normative_rejects_table(tmp_path):
+    path = write_config(
+        tmp_path,
+        """
+        [sources.cmdata-spec]
+        format = "markdown"
+        file = "SPECIFICATION.md"
+
+        [sources.cmdata-spec.normative]
+        11 = ["5-8"]
+        """,
+    )
+    with pytest.raises(ConfigError, match="'normative' must be a flat list"):
+        load(path)
+
+
+def test_normative_bad_place_syntax_raises_config_error(tmp_path):
+    path = write_config(
+        tmp_path,
+        """
+        [sources.cmdata-spec]
+        format = "markdown"
+        file = "SPECIFICATION.md"
+        normative = ["not-a-place"]
+        """,
+    )
+    with pytest.raises(ConfigError, match="invalid place"):
+        load(path)
+
+
+def test_dir_source_normative_bad_id_entry_type_raises(tmp_path):
+    path = write_config(
+        tmp_path,
+        """
+        [sources.bolt]
+        format = "markdown"
+        dir = "lightning-rfc"
+        pattern = "{id:02d}-*.md"
+
+        [sources.bolt.normative]
+        11 = "5-8"
+        """,
+    )
+    with pytest.raises(ConfigError, match="must be a list of place strings"):
+        load(path)

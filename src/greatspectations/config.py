@@ -2,7 +2,9 @@ import glob
 import os
 import tomllib
 from dataclasses import dataclass, field, replace
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
+
+from greatspectations.normative import NormativeSpan, PlaceSyntaxError, parse_normative
 
 IdType = Union[int, str]
 
@@ -21,6 +23,9 @@ class Source:
     dir: Optional[str] = None
     file: Optional[str] = None
     pattern: Optional[str] = None
+    normative: Dict[Optional[IdType], List[NormativeSpan]] = field(
+        default_factory=dict
+    )
 
     @property
     def needs_id(self) -> bool:
@@ -99,6 +104,49 @@ class Config:
         return {s.comment_marker: s.name for s in self.sources.values()}
 
 
+def _build_normative(
+    name: str, table: Dict, has_dir: bool
+) -> Dict[Optional[IdType], List[NormativeSpan]]:
+    raw = table.get("normative")
+    if raw is None:
+        return {}
+
+    if has_dir:
+        if not isinstance(raw, dict):
+            raise ConfigError(
+                "source '{}' sets 'dir' so 'normative' must be a table "
+                "mapping id -> list of places".format(name)
+            )
+        normative: Dict[Optional[IdType], List[NormativeSpan]] = {}
+        for raw_id, specs in raw.items():
+            if not isinstance(specs, list):
+                raise ConfigError(
+                    "source '{}' normative[{!r}] must be a list of place "
+                    "strings".format(name, raw_id)
+                )
+            try:
+                id_value: IdType = int(raw_id)
+            except ValueError:
+                id_value = raw_id
+            try:
+                normative[id_value] = parse_normative(specs)
+            except PlaceSyntaxError as e:
+                raise ConfigError(
+                    "source '{}' normative[{!r}]: {}".format(name, raw_id, e)
+                ) from e
+        return normative
+
+    if not isinstance(raw, list):
+        raise ConfigError(
+            "source '{}' sets 'file' so 'normative' must be a flat list "
+            "of place strings".format(name)
+        )
+    try:
+        return {None: parse_normative(raw)}
+    except PlaceSyntaxError as e:
+        raise ConfigError("source '{}' normative: {}".format(name, e)) from e
+
+
 def _build_source(name: str, table: Dict) -> Source:
     if "format" not in table:
         raise ConfigError("source '{}' is missing required 'format'".format(name))
@@ -112,6 +160,7 @@ def _build_source(name: str, table: Dict) -> Source:
         )
 
     comment_marker = table.get("comment_marker", name.upper())
+    normative = _build_normative(name, table, has_dir)
 
     if has_dir:
         if "pattern" not in table:
@@ -132,6 +181,7 @@ def _build_source(name: str, table: Dict) -> Source:
             comment_marker=comment_marker,
             dir=table["dir"],
             pattern=pattern,
+            normative=normative,
         )
 
     if "pattern" in table:
@@ -143,6 +193,7 @@ def _build_source(name: str, table: Dict) -> Source:
         format=format_name,
         comment_marker=comment_marker,
         file=table["file"],
+        normative=normative,
     )
 
 

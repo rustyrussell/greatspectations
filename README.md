@@ -106,6 +106,29 @@ Each `[sources.NAME]` table is:
   (`bolt` -> `BOLT`, `cmdata-spec` -> `CMDATA-SPEC`), which is exactly
   CLN's existing `# BOLT #11:` convention -- no source comments need to
   change to adopt this tool for BOLT.
+- `normative` (optional) -- exactly which spec text must be quoted by
+  something, as an alternative to guessing from RFC 2119/8174 keywords
+  (see Coverage below). Meant to be generated once (by an LLM, or by
+  hand for a short document) rather than maintained by feel. For a
+  `file` source it's a flat array of places; for a `dir` source, since
+  each id is a different document, it's a table keyed by id:
+
+  ```toml
+  [sources.cmdata-spec]
+  format = "markdown"
+  file = "SPECIFICATION.md"
+  normative = ["12-15", "20:5-30:10"]
+
+  [sources.bolt.normative]
+  11 = ["42-58", "70"]
+  ```
+
+  Each place is 1-indexed and inclusive: `"42"` is the whole line;
+  `"42:10-20"` is columns 10-20 of line 42; `"42-50"` is lines 42
+  through 50; `"-50"`/`"42-"` are open-ended (start/end of file);
+  `"42:10-50:20"` is a precise span from column 10 of line 42 through
+  column 20 of line 50. See `normative.py`'s module docstring for the
+  full grammar and its edge cases.
 
 Relative `dir`/`file` paths are resolved against the directory
 containing `specquotes.toml`, not your current working directory.
