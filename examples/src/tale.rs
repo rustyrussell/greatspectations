@@ -8,7 +8,7 @@
 /* DICKENS #1: It was the best of times, it was the blurst of times,
  */
 const BEST: &str = "the best of times";
-const WORST: &str = "the worst of times"; // "You stupid monkey!"
+const WORST: &str = "the blurst of times"; // "You stupid monkey!"
 
 /* DICKENS #1: we had everything before us, we had nothing before us,
  */

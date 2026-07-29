@@ -311,78 +311,7 @@
   }
   ul.spec-notes span.note-body { color: var(--ink-dim); }
 
-  /* ---------- example / code panel ---------- */
-
-  .example-panel {
-    background: var(--bg-raised);
-    border: 1px solid var(--rule);
-    border-radius: 14px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
-
-  .example-panel .panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.85rem 1.15rem;
-    border-bottom: 1px solid var(--rule);
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    color: var(--ink-faint);
-  }
-
-  .panel-head .filename { color: var(--ink-dim); }
-
-  .state-toggle {
-    display: inline-flex;
-    border: 1px solid var(--rule);
-    border-radius: 999px;
-    padding: 2px;
-    gap: 2px;
-  }
-
-  .state-toggle button {
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    border: none;
-    background: transparent;
-    color: var(--ink-faint);
-    padding: 0.32rem 0.7rem;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background 120ms ease, color 120ms ease;
-  }
-
-  .state-toggle button[aria-pressed="true"] {
-    background: var(--bg-code);
-    color: var(--ink);
-  }
-
-  .example-panel pre {
-    margin: 0;
-    padding: 1.35rem 1.15rem;
-    overflow-x: auto;
-    font-family: var(--mono);
-    font-size: 0.82rem;
-    line-height: 1.65;
-    background: var(--bg-code);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .ln-comment { color: var(--ink-faint); }
-  .ln-marker { color: var(--ink-dim); }
-  .marker-hit { color: var(--match); }
-  .marker-drift { color: var(--drift); text-decoration: line-through; text-decoration-color: var(--drift); text-decoration-thickness: 1.5px; }
-  .ln-code { color: var(--ink); }
-  .ln-code .num { color: var(--accent); }
-
-  .diagram-swap {
-    position: relative;
-  }
+  /* ---------- result chip (pass/fail indicator) ---------- */
 
   .result-chip {
     display: flex;
@@ -394,10 +323,6 @@
     font-size: 0.82rem;
     border-top: 1px dashed var(--rule);
     background: var(--bg-raised);
-  }
-
-  .result-chip[hidden] {
-    display: none;
   }
 
   .result-chip .dot {
@@ -412,7 +337,6 @@
   .result-chip .msg { color: var(--ink-dim); }
   .result-chip .msg strong { color: var(--ink); font-weight: 600; }
 
-  [data-state="drift"] .result-chip .dot { background: var(--drift); }
   .result-chip.fail .dot { background: var(--drift); }
 
   /* ---------- worked-example tabs ---------- */
@@ -569,8 +493,7 @@
     <a class="wordmark" href="#top">Great <em>Spectations</em></a>
     <nav class="site-nav" aria-label="Section">
       <a href="#catches">What it catches</a>
-      <a href="#example">Example</a>
-      <a href="#worked-example">Worked example</a>
+      <a href="#worked-example">Example</a>
       <a href="#why">Why it Matters</a>
       <a href="#install">Install</a>
     </nav>
@@ -622,40 +545,10 @@
     </div>
   </section>
 
-  <section class="block" id="example">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="section-num">§2</span>
-        <h2 class="section-title">Quote Glorious Prose, by Dickens!</h2>
-      </div>
-
-      <div class="example-panel diagram-swap" id="example-swap" data-state="match">
-        <div class="panel-head">
-          <span class="filename">pip.py</span>
-          <div class="state-toggle" role="group" aria-label="Preview matched or drifted spec">
-            <button type="button" data-set-state="match" aria-pressed="true">spec matches</button>
-            <button type="button" data-set-state="drift" aria-pressed="false">spec drifted</button>
-          </div>
-        </div>
-        <pre><code><span class="ln-comment"># </span><span class="ln-marker" data-marker>DICKENS #1:</span>
-<span class="ln-comment">#  It was the best of times, it was the <span data-highlight>worst</span> of times.</span>
-<span class="ln-code"><span class="num">TIMES</span> = "worst"</span></code></pre>
-        <p class="result-chip" data-match-msg>
-          <span class="dot" aria-hidden="true"></span>
-          <span class="msg"><strong>greatspectate check</strong> — quote matches <em>A Tale of Two Cities</em>, ch. 1, verbatim.</span>
-        </p>
-        <p class="result-chip" data-drift-msg hidden>
-          <span class="dot" aria-hidden="true"></span>
-          <span class="msg"><strong>pip.py:1:</strong> cannot find match — "blurst" isn't in the spec. <a href="https://www.youtube.com/watch?v=no_elVGGgW8">"You stupid monkey!"</a></span>
-        </p>
-      </div>
-    </div>
-  </section>
-
   <section class="block" id="worked-example">
     <div class="wrap">
       <div class="section-head">
-        <span class="section-num">§3</span>
+        <span class="section-num">§2</span>
         <h2 class="section-title">The Period, in Three Languages</h2>
       </div>
       <p class="hero-tagline" style="margin-bottom: 1.75rem;">A real, runnable example: Python, C++, and Rust each quote different clauses of the same paragraph; one of them botches a quote, one clause never gets quoted at all. Generated straight from <code>examples/generate.py</code> running the actual tool — see <a href="https://github.com/rustyrussell/greatspectations/tree/master/examples">examples/</a> in the repo.</p>
@@ -733,7 +626,7 @@ const char *VERDICT = "the superlative degree of comparison only";
 /* DICKENS #1: It was the best of times, it was the blurst of times,
  */
 const BEST: &amp;str = "the best of times";
-const WORST: &amp;str = "the worst of times"; // "You stupid monkey!"
+const WORST: &amp;str = "the blurst of times"; // "You stupid monkey!"
 
 /* DICKENS #1: we had everything before us, we had nothing before us,
  */
@@ -781,7 +674,7 @@ const VERDICT: &amp;str = "the superlative degree of comparison only";
   <section class="block" id="why">
     <div class="wrap">
       <div class="section-head">
-        <span class="section-num">§4</span>
+        <span class="section-num">§3</span>
         <h2 class="section-title">I say, Pip, old chap!</h2>
       </div>
       <div class="marginalia">
@@ -828,45 +721,6 @@ const VERDICT: &amp;str = "the superlative degree of comparison only";
         }
       });
     });
-
-    var panel = document.getElementById("example-swap");
-    var toggle = panel.querySelector(".state-toggle");
-    var marker = panel.querySelector("[data-marker]");
-    var highlight = panel.querySelector("[data-highlight]");
-    var matchMsg = panel.querySelector("[data-match-msg]");
-    var driftMsg = panel.querySelector("[data-drift-msg]");
-
-    function setState(state) {
-      panel.setAttribute("data-state", state);
-      toggle.querySelectorAll("button").forEach(function (b) {
-        b.setAttribute("aria-pressed", String(b.getAttribute("data-set-state") === state));
-      });
-      if (state === "drift") {
-        marker.classList.remove("marker-hit");
-        marker.classList.add("marker-drift");
-        highlight.classList.remove("marker-hit");
-        highlight.classList.add("marker-drift");
-        highlight.textContent = "blurst";
-        matchMsg.hidden = true;
-        driftMsg.hidden = false;
-      } else {
-        marker.classList.remove("marker-drift");
-        marker.classList.add("marker-hit");
-        highlight.classList.remove("marker-drift");
-        highlight.classList.add("marker-hit");
-        highlight.textContent = "worst";
-        matchMsg.hidden = false;
-        driftMsg.hidden = true;
-      }
-    }
-
-    toggle.addEventListener("click", function (e) {
-      var btn = e.target.closest("button[data-set-state]");
-      if (!btn) return;
-      setState(btn.getAttribute("data-set-state"));
-    });
-
-    setState("match");
 
     document.querySelectorAll(".tab-list[role=tablist]").forEach(function (list) {
       var container = list.closest(".example-tabs");
