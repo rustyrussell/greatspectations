@@ -74,6 +74,13 @@ def cmd_check(args: argparse.Namespace) -> int:
                     "id": r.quote.id,
                     "ok": r.ok,
                     "error": r.error,
+                    "suggestion": (
+                        {
+                            "file": r.suggestion.file, "line": r.suggestion.line,
+                            "ratio": r.suggestion.ratio, "snippet": r.suggestion.snippet,
+                        }
+                        if r.suggestion else None
+                    ),
                 }
                 for r in results
             ],
@@ -87,6 +94,14 @@ def cmd_check(args: argparse.Namespace) -> int:
                     "{}:{}:{}".format(r.quote.filename, r.quote.line, r.error),
                     file=sys.stderr,
                 )
+                if r.suggestion is not None:
+                    print(
+                        "{}:{}: note: closest match ({:.0%}): {!r}".format(
+                            r.suggestion.file, r.suggestion.line,
+                            r.suggestion.ratio, r.suggestion.snippet,
+                        ),
+                        file=sys.stderr,
+                    )
                 if not args.keep_going:
                     break
             elif args.verbose:

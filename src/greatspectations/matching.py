@@ -12,8 +12,15 @@ immediately follow the previous one). Two additions over the original:
     sections whose header contains that text, so near-identical wording
     repeated across sections (e.g. Reader/Writer Requirements) can't
     silently cross-match.
+
+find_closest_match() adds a gcc-style "note:" hint for a failed quote:
+a best-effort, stdlib-only (difflib) guess at the spec location the
+quote probably meant, for when the spec's wording has drifted. It never
+affects whether a quote passes or fails -- only what gets suggested
+alongside a failure.
 """
 
+import difflib
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -23,6 +30,9 @@ from greatspectations.formats import Document, Section
 from greatspectations.quotes import Quote
 
 MODES = ("normalized", "exact")
+
+DEFAULT_SUGGESTION_CUTOFF = 0.6
+_SNIPPET_MAXLEN = 80
 
 
 class MatchingError(Exception):
@@ -37,11 +47,22 @@ class Match:
 
 
 @dataclass(frozen=True)
+class Suggestion:
+    """A best-effort "did you mean this?" location for a failed quote."""
+
+    file: str
+    line: int
+    ratio: float
+    snippet: str
+
+
+@dataclass(frozen=True)
 class CheckResult:
     quote: Quote
     ok: bool
     error: Optional[str] = None
     match: Optional[Match] = None
+    suggestion: Optional[Suggestion] = None
 
 
 def section_text(section: Section, mode: str) -> str:
@@ -153,6 +174,61 @@ def find_quote_immediate(
     return match_start, off
 
 
+def _truncate(text: str, maxlen: int = _SNIPPET_MAXLEN) -> str:
+    text = text.strip()
+    return text if len(text) <= maxlen else text[:maxlen].rstrip() + "..."
+
+
+def find_closest_match(
+    doc_path: str,
+    query: str,
+    sections: Sequence[Section],
+    mode: str = "normalized",
+    candidate_indices: Optional[Sequence[int]] = None,
+    cutoff: float = DEFAULT_SUGGESTION_CUTOFF,
+) -> Optional[Suggestion]:
+    """Best-effort spec location most similar to a quote that failed to
+    match anything, for a gcc-style "note:" hint -- not a match, just a
+    guess at where the spec's wording drifted to. '...' wildcards are
+    treated as ordinary text, since this only needs to be approximate.
+
+    For each candidate section, finds the longest common substring
+    between the section and the query (via difflib), then scores a
+    query-length window aligned around it -- cheap, and avoids diluting
+    the score by an entire (possibly huge) section. Returns None if
+    nothing scores at least cutoff.
+    """
+    needle = query.replace("...", " ")
+    if not needle.strip():
+        return None
+    indices = candidate_indices if candidate_indices is not None else range(len(sections))
+
+    best: Optional[Suggestion] = None
+    for si in indices:
+        haystack = section_text(sections[si], mode)
+        if not haystack.strip():
+            continue
+        block = difflib.SequenceMatcher(
+            None, haystack, needle, autojunk=False
+        ).find_longest_match(0, len(haystack), 0, len(needle))
+        if block.size == 0:
+            continue
+
+        start = max(0, block.a - block.b)
+        end = min(len(haystack), start + len(needle))
+        ratio = difflib.SequenceMatcher(
+            None, haystack[start:end], needle, autojunk=False
+        ).ratio()
+        if best is None or ratio > best.ratio:
+            linemap = section_linemap(sections[si], mode)
+            line = linemap[start] if start < len(linemap) else (linemap[-1] if linemap else 1)
+            best = Suggestion(
+                file=doc_path, line=line, ratio=ratio, snippet=_truncate(haystack[start:end])
+            )
+
+    return best if best is not None and best.ratio >= cutoff else None
+
+
 def check_quotes(
     config: Config, quotes: Sequence[Quote], mode: str = "normalized"
 ) -> List[CheckResult]:
@@ -225,7 +301,13 @@ def check_quotes(
                 candidates = None
             match = find_quote(q.text, doc.sections, mode=mode, candidate_indices=candidates)
             if match is None:
-                results.append(CheckResult(q, False, error="cannot find match"))
+                suggestion = find_closest_match(
+                    doc.path, q.text, doc.sections, mode=mode,
+                    candidate_indices=candidates,
+                )
+                results.append(
+                    CheckResult(q, False, error="cannot find match", suggestion=suggestion)
+                )
                 continue
 
         assert match is not None

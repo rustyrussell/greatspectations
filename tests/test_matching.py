@@ -6,6 +6,7 @@ from greatspectations.matching import (
     Match,
     MatchingError,
     check_quotes,
+    find_closest_match,
     find_quote,
     find_quote_immediate,
     sections_matching_hint,
@@ -163,6 +164,65 @@ def test_exact_mode_requires_literal_whitespace(tmp_path):
     ) is not None
 
 
+def test_find_closest_match_finds_reworded_text(tmp_path):
+    doc = load_doc(tmp_path, "spec.md", SPEC_TEXT)
+    headers = [s.header for s in doc.sections]
+    requirements_idx = headers.index("## Requirements")
+
+    # Comment still quotes what the spec used to say; the spec has
+    # since been reworded slightly ("before writing" -> "prior to
+    # writing").
+    s = find_closest_match(
+        doc.path, "A writer MUST set the length field prior to writing data.",
+        doc.sections,
+    )
+    assert s is not None
+    assert s.file == doc.path
+    assert s.line == linenum_of(SPEC_TEXT, "A writer MUST set the length field")
+    assert s.ratio > 0.6
+    assert "length field" in s.snippet
+
+
+def test_find_closest_match_returns_none_below_cutoff(tmp_path):
+    doc = load_doc(tmp_path, "spec.md", SPEC_TEXT)
+    s = find_closest_match(
+        doc.path, "the quick brown fox jumps over the lazy dog repeatedly forever",
+        doc.sections,
+    )
+    assert s is None
+
+
+def test_find_closest_match_respects_candidate_indices(tmp_path):
+    doc = load_doc(tmp_path, "spec.md", SPEC_TEXT)
+    headers = [s.header for s in doc.sections]
+    rationale_idx = headers.index("## Rationale")
+
+    # The close match lives in Requirements; restricting candidates to
+    # Rationale should find nothing there instead.
+    s = find_closest_match(
+        doc.path, "A writer MUST set the length field before writing data.",
+        doc.sections, candidate_indices=[rationale_idx],
+    )
+    assert s is None
+
+
+def test_find_closest_match_handles_wildcard_query(tmp_path):
+    doc = load_doc(tmp_path, "spec.md", SPEC_TEXT)
+    # Shouldn't crash on a '...'-bearing query, even though '...' is
+    # just treated as ordinary text here.
+    s = find_closest_match(
+        doc.path, "A writer MUST...length field before writing data.", doc.sections,
+    )
+    assert s is not None
+
+
+def linenum_of(text, needle):
+    for i, line in enumerate(text.splitlines(), 1):
+        if needle in line:
+            return i
+    raise AssertionError("{!r} not found in text".format(needle))
+
+
 def make_config(sources) -> Config:
     return Config(sources={s.name: s for s in sources})
 
@@ -226,6 +286,54 @@ def test_check_quotes_wrong_hint_fails(tmp_path):
     assert len(results) == 1
     assert not results[0].ok
     assert "no section header matching hint" in results[0].error
+
+
+def test_check_quotes_failure_includes_suggestion(tmp_path):
+    spec_path = tmp_path / "SPECIFICATION.md"
+    spec_path.write_text(SPEC_TEXT)
+    config = make_config([cmdata_source(tmp_path, spec_path)])
+
+    quote = Quote(
+        source="cmdata-spec", id=None, section_hint=None,
+        filename="x.c", line=1,
+        text="A writer MUST set the length field prior to writing data.",
+    )
+    results = check_quotes(config, [quote])
+    assert len(results) == 1
+    assert not results[0].ok
+    assert results[0].suggestion is not None
+    assert "length field" in results[0].suggestion.snippet
+
+
+def test_check_quotes_failure_suggestion_none_when_nothing_close(tmp_path):
+    spec_path = tmp_path / "SPECIFICATION.md"
+    spec_path.write_text(SPEC_TEXT)
+    config = make_config([cmdata_source(tmp_path, spec_path)])
+
+    quote = Quote(
+        source="cmdata-spec", id=None, section_hint=None,
+        filename="x.c", line=1,
+        text="the quick brown fox jumps over the lazy dog repeatedly forever",
+    )
+    results = check_quotes(config, [quote])
+    assert len(results) == 1
+    assert not results[0].ok
+    assert results[0].suggestion is None
+
+
+def test_check_quotes_success_has_no_suggestion(tmp_path):
+    spec_path = tmp_path / "SPECIFICATION.md"
+    spec_path.write_text(SPEC_TEXT)
+    config = make_config([cmdata_source(tmp_path, spec_path)])
+
+    quote = Quote(
+        source="cmdata-spec", id=None, section_hint=None,
+        filename="x.c", line=1,
+        text="A writer MUST set the length field before writing data.",
+    )
+    results = check_quotes(config, [quote])
+    assert results[0].ok
+    assert results[0].suggestion is None
 
 
 def test_check_quotes_dotdotdot_immediate_followup(tmp_path):

@@ -39,6 +39,22 @@ greatspectate check --config specquotes.toml src/invoice.c
 in the spec, or 1 and prints `file:line:message` for anything that
 doesn't match.
 
+When a quote fails to match anything, `check` also looks for spec text
+that's merely *similar* -- the wording probably drifted rather than
+vanished -- and if it finds something reasonably close, prints a
+gcc-style `note:` line pointing at it (the same `file:line:` format
+your editor already knows how to jump to, e.g. from Emacs' `compile`
+or Vim's quickfix):
+
+```
+src/invoice.c:12:cannot find match
+11-payment-encoding.md:6: note: closest match (85%): 'MUST set `payment_hash` to the SHA256 of `payment_preimage`. - MUST set'
+```
+
+This is a best-effort hint (stdlib `difflib`, no network, fully
+deterministic) -- it never affects whether a quote passes or fails, and
+says nothing if nothing clears a similarity threshold.
+
 ## `specquotes.toml`
 
 Each repository that wants quote-checking declares its own

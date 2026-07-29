@@ -43,6 +43,37 @@ def test_check_bolt_failure_reports_file_and_line(tmp_path):
     assert "example.c:1:cannot find match" in result.stderr
 
 
+def test_check_failure_reports_closest_match_note(tmp_path):
+    # Drifted quote: real spec says 'to the SHA256 of', this comment
+    # has picked up an extra word, like an old quote nobody updated.
+    source = write_source(
+        tmp_path, "example.c",
+        "# BOLT #11: A writer: - MUST set `payment_hash` to the SHA256 "
+        "hash value of `payment_preimage`.\n",
+    )
+    result = run_greatspectate(["check", "--config", CONFIG, source])
+    assert result.returncode == 1
+    lines = result.stderr.splitlines()
+    assert len(lines) == 2
+    assert "example.c:1:cannot find match" in lines[0]
+    assert "11-payment-encoding.md:" in lines[1]
+    assert ": note: closest match (" in lines[1]
+    assert "payment_hash" in lines[1]
+
+
+def test_check_failure_no_note_when_nothing_close(tmp_path):
+    source = write_source(
+        tmp_path, "example.c",
+        "# BOLT #11: the quick brown fox jumps over the lazy dog "
+        "repeatedly forever\n",
+    )
+    result = run_greatspectate(["check", "--config", CONFIG, source])
+    assert result.returncode == 1
+    lines = result.stderr.splitlines()
+    assert len(lines) == 1
+    assert "note:" not in result.stderr
+
+
 def test_check_bip_success(tmp_path):
     source = write_source(
         tmp_path, "example.c",
@@ -149,6 +180,23 @@ def test_check_json_format(tmp_path):
     assert payload["results"][0]["ok"] is True
     assert payload["results"][0]["source"] == "bolt"
     assert payload["results"][0]["id"] == 11
+    assert payload["results"][0]["suggestion"] is None
+
+
+def test_check_json_format_includes_suggestion_on_failure(tmp_path):
+    source = write_source(
+        tmp_path, "example.c",
+        "# BOLT #11: A writer: - MUST set `payment_hash` to the SHA256 "
+        "hash value of `payment_preimage`.\n",
+    )
+    result = run_greatspectate(["check", "--config", CONFIG, "--format", "json", source])
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    suggestion = payload["results"][0]["suggestion"]
+    assert suggestion is not None
+    assert suggestion["file"].endswith("11-payment-encoding.md")
+    assert "payment_hash" in suggestion["snippet"]
+    assert 0 < suggestion["ratio"] <= 1
 
 
 def test_check_writes_coverage_file(tmp_path):
