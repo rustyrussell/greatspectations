@@ -49,7 +49,7 @@ misquotes "worst" as "blurst" -- see [examples.md](examples/examples.md)):
 
 <!-- BEGIN GENERATED NOTE EXAMPLE (examples/generate.py -- do not hand-edit) -->
 ```
-src/tale.rs:8:cannot find match
+src/tale.rs:7:cannot find match
 01-the-period.md:10: note: closest match (94%): 'It was the best of times, it was the worst of times,'
 ```
 <!-- END GENERATED NOTE EXAMPLE -->

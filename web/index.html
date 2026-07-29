@@ -549,16 +549,15 @@
     <div class="wrap">
       <div class="section-head">
         <span class="section-num">§2</span>
-        <h2 class="section-title">The Period, in Three Languages</h2>
+        <h2 class="section-title">The Period, in Two Languages</h2>
       </div>
-      <p class="hero-tagline" style="margin-bottom: 1.75rem;">A real, runnable example: Python, C++, and Rust each quote different clauses of the same paragraph; one of them botches a quote, one clause never gets quoted at all. Generated straight from <code>examples/generate.py</code> running the actual tool — see <a href="https://github.com/rustyrussell/greatspectations/tree/master/examples">examples/</a> in the repo.</p>
+      <p class="hero-tagline" style="margin-bottom: 1.75rem;">A real, runnable example: Python and Rust each quote different clauses of the same paragraph; one of them botches a quote, one clause never gets quoted at all. Generated straight from <code>examples/generate.py</code> running the actual tool — see <a href="https://github.com/rustyrussell/greatspectations/tree/master/examples">examples/</a> in the repo.</p>
 
       <!-- BEGIN GENERATED EXAMPLE (examples/generate.py -- do not hand-edit) -->
 <div class="example-tabs" id="worked-example-tabs">
 <div class="panel-head">
 <div class="tab-list" role="tablist" aria-label="Language / coverage">
 <button role="tab" aria-selected="true" data-tab="python">Python</button>
-<button role="tab" aria-selected="false" data-tab="cpp">C++</button>
 <button role="tab" aria-selected="false" data-tab="rust">Rust</button>
 <button role="tab" aria-selected="false" data-tab="coverage">Coverage</button>
 </div>
@@ -589,62 +588,32 @@ THE_OTHER_WAY = "direct the other way"
 <span class="cmd-line">src/tale.py:11:Matched 'it was the spring of hope, it was the winter of despair,'</span>
 <span class="cmd-line">src/tale.py:15:Matched 'we were all going direct to Heaven, we were all going direct the other way'</span></code></pre>
 </div>
-<div class="tab-panel" data-tab-panel="cpp" hidden>
+<div class="tab-panel" data-tab-panel="rust" hidden>
 <pre class="src"><code>// Great Spectations demo: quoting Dickens instead of a protocol spec.
 //
 // Nothing here is a real "requirement" -- it's just prose from a
 // novel, used to show that greatspectate checks any text source, not
 // only specs.
 
-// DICKENS #1: it was the epoch of belief, it was the epoch of incredulity,
-const char *BELIEF = "the epoch of belief";
-const char *INCREDULITY = "the epoch of incredulity";
+// DICKENS #1: It was the best of times, it was the blurst of times,
+const BEST: &amp;str = "the best of times";
+const WORST: &amp;str = "the blurst of times"; // "You stupid monkey!"
 
-// DICKENS #1: it was the spring of hope, it was the winter of despair,
-const char *HOPE = "the spring of hope";
-const char *DESPAIR = "the winter of despair";
+// DICKENS #1: we had everything before us, we had nothing before us,
+const EVERYTHING: &amp;str = "everything before us";
+const NOTHING: &amp;str = "nothing before us";
 
 // DICKENS #1: in short, the period was so far like the present period,
 // that some of its noisiest authorities insisted on its being received,
 // for good or for evil, in the superlative degree of comparison only.
-const char *VERDICT = "the superlative degree of comparison only";
-</code></pre>
-<p class="result-chip ok"><span class="dot" aria-hidden="true"></span><span class="msg"><strong>greatspectate check</strong> &mdash; all quotes match</span></p>
-<pre class="cmd-output"><code>$ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '// ' --comment-continue '//' src/tale.cpp
-<span class="cmd-line">src/tale.cpp:7:Matched 'it was the epoch of belief, it was the epoch of incredulity,'</span>
-<span class="cmd-line">src/tale.cpp:11:Matched 'it was the spring of hope, it was the winter of despair,'</span>
-<span class="cmd-line">src/tale.cpp:15:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'</span></code></pre>
-</div>
-<div class="tab-panel" data-tab-panel="rust" hidden>
-<pre class="src"><code>/* Great Spectations demo: quoting Dickens instead of a protocol spec.
- *
- * Nothing here is a real "requirement" -- it's just prose from a
- * novel, used to show that greatspectate checks any text source, not
- * only specs.
- */
-
-/* DICKENS #1: It was the best of times, it was the blurst of times,
- */
-const BEST: &amp;str = "the best of times";
-const WORST: &amp;str = "the blurst of times"; // "You stupid monkey!"
-
-/* DICKENS #1: we had everything before us, we had nothing before us,
- */
-const EVERYTHING: &amp;str = "everything before us";
-const NOTHING: &amp;str = "nothing before us";
-
-/* DICKENS #1: in short, the period was so far like the present period,
- * that some of its noisiest authorities insisted on its being received,
- * for good or for evil, in the superlative degree of comparison only.
- */
 const VERDICT: &amp;str = "the superlative degree of comparison only";
 </code></pre>
 <p class="result-chip fail"><span class="dot" aria-hidden="true"></span><span class="msg"><strong>greatspectate check</strong> &mdash; one quote doesn't match</span></p>
-<pre class="cmd-output"><code>$ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '/* ' --comment-continue '*' --comment-end '*/' src/tale.rs
-<span class="cmd-fail">src/tale.rs:8:cannot find match</span>
+<pre class="cmd-output"><code>$ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '// ' --comment-continue '//' src/tale.rs
+<span class="cmd-fail">src/tale.rs:7:cannot find match</span>
 <span class="cmd-line">01-the-period.md:10: note: closest match (94%): 'It was the best of times, it was the worst of times,'</span>
-<span class="cmd-line">src/tale.rs:13:Matched 'we had everything before us, we had nothing before us,'</span>
-<span class="cmd-line">src/tale.rs:18:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'</span></code></pre>
+<span class="cmd-line">src/tale.rs:11:Matched 'we had everything before us, we had nothing before us,'</span>
+<span class="cmd-line">src/tale.rs:15:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'</span></code></pre>
 </div>
 <div class="tab-panel" data-tab-panel="coverage" hidden>
 <pre class="cov"><code><span class="cov-neutral">    01-the-period.md:1:&lt;!-- Public domain: Charles Dickens, "A Tale of Two Cities" (1859).</span>
@@ -658,14 +627,14 @@ const VERDICT: &amp;str = "the superlative degree of comparison only";
 <span class="cov-neutral">    01-the-period.md:9:</span>
 <span class="cov-gap">*** 01-the-period.md:10:It was the best of times, it was the worst of times,</span>
 <span class="cov-covered">+   01-the-period.md:11:it was the age of wisdom, it was the age of foolishness,</span>
-<span class="cov-covered">+   01-the-period.md:12:it was the epoch of belief, it was the epoch of incredulity,</span>
+<span class="cov-gap">*** 01-the-period.md:12:it was the epoch of belief, it was the epoch of incredulity,</span>
 <span class="cov-gap">*** 01-the-period.md:13:it was the season of Light, it was the season of Darkness,</span>
-<span class="cov-covered">++  01-the-period.md:14:it was the spring of hope, it was the winter of despair,</span>
+<span class="cov-covered">+   01-the-period.md:14:it was the spring of hope, it was the winter of despair,</span>
 <span class="cov-covered">+   01-the-period.md:15:we had everything before us, we had nothing before us,</span>
 <span class="cov-covered">+   01-the-period.md:16:we were all going direct to Heaven, we were all going direct the other way--</span>
-<span class="cov-covered">++  01-the-period.md:17:in short, the period was so far like the present period, that some of</span>
-<span class="cov-covered">++  01-the-period.md:18:its noisiest authorities insisted on its being received, for good or</span>
-<span class="cov-covered">++  01-the-period.md:19:for evil, in the superlative degree of comparison only.</span></code></pre>
+<span class="cov-covered">+   01-the-period.md:17:in short, the period was so far like the present period, that some of</span>
+<span class="cov-covered">+   01-the-period.md:18:its noisiest authorities insisted on its being received, for good or</span>
+<span class="cov-covered">+   01-the-period.md:19:for evil, in the superlative degree of comparison only.</span></code></pre>
 </div>
 </div>
 <!-- END GENERATED EXAMPLE -->
@@ -679,8 +648,8 @@ const VERDICT: &amp;str = "the superlative degree of comparison only";
         <h2 class="section-title">I say, Pip, old chap!</h2>
       </div>
       <div class="marginalia">
-        <p>This is particularly useful when implementing a specification and its implementation side by side: the spec becomes better because you use it to annotate the code, and can see whether it's sufficiently thorough, or logically laid out for other implementors.</p>
-        <p>Great Spectations spots the moment the two get out of sync.</p>
+        <p>This is particularly useful when writing a specification and its implementation side by side: the spec becomes better because you use it to annotate the code, and can see whether it's sufficiently thorough, or logically laid out for other implementors.</p>
+        <p>Whoever implements your specification will thank you for it!</p>
       </div>
     </div>
   </section>

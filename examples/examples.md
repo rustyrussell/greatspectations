@@ -60,73 +60,37 @@ src/tale.py:11:Matched 'it was the spring of hope, it was the winter of despair,
 src/tale.py:15:Matched 'we were all going direct to Heaven, we were all going direct the other way'
 ```
 
-## C++
+## Rust
 
-```cpp
+```rust
 // Great Spectations demo: quoting Dickens instead of a protocol spec.
 //
 // Nothing here is a real "requirement" -- it's just prose from a
 // novel, used to show that greatspectate checks any text source, not
 // only specs.
 
-// DICKENS #1: it was the epoch of belief, it was the epoch of incredulity,
-const char *BELIEF = "the epoch of belief";
-const char *INCREDULITY = "the epoch of incredulity";
+// DICKENS #1: It was the best of times, it was the blurst of times,
+const BEST: &str = "the best of times";
+const WORST: &str = "the blurst of times"; // "You stupid monkey!"
 
-// DICKENS #1: it was the spring of hope, it was the winter of despair,
-const char *HOPE = "the spring of hope";
-const char *DESPAIR = "the winter of despair";
+// DICKENS #1: we had everything before us, we had nothing before us,
+const EVERYTHING: &str = "everything before us";
+const NOTHING: &str = "nothing before us";
 
 // DICKENS #1: in short, the period was so far like the present period,
 // that some of its noisiest authorities insisted on its being received,
 // for good or for evil, in the superlative degree of comparison only.
-const char *VERDICT = "the superlative degree of comparison only";
-```
-
-This passes:
-
-```console
-$ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '// ' --comment-continue '//' src/tale.cpp
-src/tale.cpp:7:Matched 'it was the epoch of belief, it was the epoch of incredulity,'
-src/tale.cpp:11:Matched 'it was the spring of hope, it was the winter of despair,'
-src/tale.cpp:15:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'
-```
-
-## Rust
-
-```rust
-/* Great Spectations demo: quoting Dickens instead of a protocol spec.
- *
- * Nothing here is a real "requirement" -- it's just prose from a
- * novel, used to show that greatspectate checks any text source, not
- * only specs.
- */
-
-/* DICKENS #1: It was the best of times, it was the blurst of times,
- */
-const BEST: &str = "the best of times";
-const WORST: &str = "the blurst of times"; // "You stupid monkey!"
-
-/* DICKENS #1: we had everything before us, we had nothing before us,
- */
-const EVERYTHING: &str = "everything before us";
-const NOTHING: &str = "nothing before us";
-
-/* DICKENS #1: in short, the period was so far like the present period,
- * that some of its noisiest authorities insisted on its being received,
- * for good or for evil, in the superlative degree of comparison only.
- */
 const VERDICT: &str = "the superlative degree of comparison only";
 ```
 
 This **fails**:
 
 ```console
-$ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '/* ' --comment-continue '*' --comment-end '*/' src/tale.rs
-src/tale.rs:8:cannot find match
+$ greatspectate check --config specquotes.toml --coverage .coverage -v -k --comment-start '// ' --comment-continue '//' src/tale.rs
+src/tale.rs:7:cannot find match
 01-the-period.md:10: note: closest match (94%): 'It was the best of times, it was the worst of times,'
-src/tale.rs:13:Matched 'we had everything before us, we had nothing before us,'
-src/tale.rs:18:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'
+src/tale.rs:11:Matched 'we had everything before us, we had nothing before us,'
+src/tale.rs:15:Matched 'in short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only.'
 ```
 
 ## Coverage
@@ -146,14 +110,14 @@ $ greatspectate coverage --config specquotes.toml --coverage .coverage --source 
     01-the-period.md:9:
 *** 01-the-period.md:10:It was the best of times, it was the worst of times,
 +   01-the-period.md:11:it was the age of wisdom, it was the age of foolishness,
-+   01-the-period.md:12:it was the epoch of belief, it was the epoch of incredulity,
+*** 01-the-period.md:12:it was the epoch of belief, it was the epoch of incredulity,
 *** 01-the-period.md:13:it was the season of Light, it was the season of Darkness,
-++  01-the-period.md:14:it was the spring of hope, it was the winter of despair,
++   01-the-period.md:14:it was the spring of hope, it was the winter of despair,
 +   01-the-period.md:15:we had everything before us, we had nothing before us,
 +   01-the-period.md:16:we were all going direct to Heaven, we were all going direct the other way--
-++  01-the-period.md:17:in short, the period was so far like the present period, that some of
-++  01-the-period.md:18:its noisiest authorities insisted on its being received, for good or
-++  01-the-period.md:19:for evil, in the superlative degree of comparison only.
++   01-the-period.md:17:in short, the period was so far like the present period, that some of
++   01-the-period.md:18:its noisiest authorities insisted on its being received, for good or
++   01-the-period.md:19:for evil, in the superlative degree of comparison only.
 ```
 
 Two gaps show up, for two different reasons: the opening line was *attempted* (Rust's "blurst of times") but the quote is wrong, so it never matched anything; the "Light"/"Darkness" line was never quoted by anyone at all. `check` catches the first kind immediately -- `coverage` is what catches the second.

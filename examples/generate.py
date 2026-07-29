@@ -32,24 +32,12 @@ LANGUAGES = [
         "display_flags": "",
     },
     {
-        "name": "C++",
-        "tab": "cpp",
-        "file": "src/tale.cpp",
-        "fence_lang": "cpp",
-        "flags": ["--comment-start", "// ", "--comment-continue", "//"],
-        "display_flags": "--comment-start '// ' --comment-continue '//' ",
-    },
-    {
         "name": "Rust",
         "tab": "rust",
         "file": "src/tale.rs",
         "fence_lang": "rust",
-        "flags": [
-            "--comment-start", "/* ", "--comment-continue", "*", "--comment-end", "*/",
-        ],
-        "display_flags": (
-            "--comment-start '/* ' --comment-continue '*' --comment-end '*/' "
-        ),
+        "flags": ["--comment-start", "// ", "--comment-continue", "//"],
+        "display_flags": "--comment-start '// ' --comment-continue '//' ",
     },
 ]
 
