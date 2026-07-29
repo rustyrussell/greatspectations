@@ -11,6 +11,7 @@ from greatspectations.coverage import (
     write_coverage,
 )
 from greatspectations.matching import CheckResult, Match
+from greatspectations.normative import NormativeSpan
 from greatspectations.quotes import Quote
 
 
@@ -97,22 +98,22 @@ Uncovered rationale text that should never be reported as a gap.
 """
 
 
-def cmdata_config(spec_path) -> Config:
+def cmdata_config(spec_path, normative=None) -> Config:
     return Config(sources={
         "cmdata-spec": Source(
             name="cmdata-spec", format="markdown", comment_marker="CMDATA-SPEC",
-            file=str(spec_path),
+            file=str(spec_path), normative=normative or {},
         )
     })
 
 
-def annotations_for(tmp_path, text, coverage_lines=(), doc_keys=None):
+def annotations_for(tmp_path, text, coverage_lines=(), doc_keys=None, normative=None):
     """Write text as SPECIFICATION.md, write coverage_lines to a coverage
     file, and return (annotations for cmdata-spec, any_uncovered).
     """
     spec_path = tmp_path / "SPECIFICATION.md"
     spec_path.write_text(text)
-    config = cmdata_config(spec_path)
+    config = cmdata_config(spec_path, normative=normative)
 
     coverage_path = tmp_path / "coverage.txt"
     coverage_path.write_text("".join(coverage_lines))
@@ -247,6 +248,112 @@ def test_build_annotations_ignores_lowercase_prose(tmp_path):
     annotations, any_uncovered = annotations_for(tmp_path, BIP_STYLE_TEXT)
     assert any_uncovered is False
     assert all(a.status == "neutral" for a in annotations if a.text.strip())
+
+
+NORMATIVE_STYLE_TEXT = (
+    "# Example BIP\n"                                                      # 1
+    "\n"                                                                   # 2
+    "## Specification\n"                                                  # 3
+    "\n"                                                                   # 4
+    "Wallets must derive the address using the algorithm below.\n"        # 5
+    "This is ordinary commentary about wallets, nothing normative.\n"     # 6
+    "Clients SHOULD verify signatures before broadcasting.\n"             # 7
+)
+
+
+def test_build_annotations_normative_overrides_keyword_heuristic(tmp_path):
+    # Line 5 has no RFC 2119 keyword but is explicitly marked normative;
+    # line 7 has a keyword (SHOULD) but is outside the configured span.
+    # normative is the ground truth once configured -- it doesn't just
+    # add to the keyword guess, it replaces it for this document.
+    annotations, any_uncovered = annotations_for(
+        tmp_path, NORMATIVE_STYLE_TEXT,
+        normative={None: [NormativeSpan(5, None, 5, None)]},
+    )
+    by_line = {a.line: a.status for a in annotations}
+    assert by_line[5] == "gap"
+    assert by_line[7] == "neutral"
+    assert any_uncovered is True
+
+
+def test_build_annotations_normative_covered_line_is_covered(tmp_path):
+    spec_path = tmp_path / "SPECIFICATION.md"
+    spec_path.write_text(NORMATIVE_STYLE_TEXT)
+    config = cmdata_config(spec_path, normative={None: [NormativeSpan(5, None, 5, None)]})
+
+    doc = formats.load("markdown", str(spec_path))
+    si = [s.header for s in doc.sections].index("## Specification")
+    section = doc.sections[si]
+    covered_text = "Wallets must derive the address using the algorithm below."
+    start = section.text.index(covered_text)
+    end = start + len(covered_text)
+
+    coverage_path = tmp_path / "coverage.txt"
+    coverage_path.write_text(
+        "cmdata-spec - {} {} {} src.c 1\n".format(si, start, end)
+    )
+
+    by_doc, any_uncovered = build_annotations(config, str(coverage_path))
+    annotations = by_doc[("cmdata-spec", None)]
+    by_line = {a.line: (a.status, a.mentions) for a in annotations}
+    assert by_line[5] == ("covered", 1)
+    assert any_uncovered is False
+
+
+def test_build_annotations_empty_normative_list_flags_nothing(tmp_path):
+    # An explicit empty list ("I checked, nothing here is normative") is
+    # different from no config at all -- it must NOT fall back to the
+    # keyword heuristic.
+    annotations, any_uncovered = annotations_for(
+        tmp_path, RFC_STYLE_TEXT, normative={None: []},
+    )
+    assert any_uncovered is False
+    assert not any(a.status == "gap" for a in annotations)
+
+
+def test_build_annotations_normative_open_ended_span(tmp_path):
+    # start_line=None means "from the start of the file".
+    annotations, any_uncovered = annotations_for(
+        tmp_path, NORMATIVE_STYLE_TEXT,
+        normative={None: [NormativeSpan(None, None, 1, None)]},
+    )
+    by_line = {a.line: a.status for a in annotations}
+    assert by_line[1] == "gap"  # "# Example BIP" -- in span, uncovered
+    assert by_line[6] == "neutral"  # outside the span
+    assert any_uncovered is True
+
+
+def test_build_annotations_normative_is_per_document_id(tmp_path):
+    boltdir = tmp_path / "bolt-style"
+    boltdir.mkdir()
+    (boltdir / "01-a.md").write_text(NORMATIVE_STYLE_TEXT)
+    (boltdir / "02-b.md").write_text(NORMATIVE_STYLE_TEXT)
+
+    config = Config(sources={
+        "bolt": Source(
+            name="bolt", format="markdown", comment_marker="BOLT",
+            dir=str(boltdir), pattern="{id:02d}-*.md",
+            normative={1: [NormativeSpan(5, None, 5, None)]},
+        )
+    })
+    coverage_path = tmp_path / "coverage.txt"
+    coverage_path.write_text("")
+
+    by_doc, _ = build_annotations(
+        config, str(coverage_path), doc_keys=[("bolt", 1), ("bolt", 2)]
+    )
+
+    # id 1 has normative configured: line 5 (no keyword) is a gap, line
+    # 7 (keyword, but outside the span) is neutral.
+    by_line_1 = {a.line: a.status for a in by_doc[("bolt", 1)]}
+    assert by_line_1[5] == "gap"
+    assert by_line_1[7] == "neutral"
+
+    # id 2 has no normative configured, so it falls back to the keyword
+    # heuristic: line 5 (no keyword) is neutral, line 7 (SHOULD) is a gap.
+    by_line_2 = {a.line: a.status for a in by_doc[("bolt", 2)]}
+    assert by_line_2[5] == "neutral"
+    assert by_line_2[7] == "gap"
 
 
 def test_build_annotations_skips_unresolvable_source(tmp_path, capsys):

@@ -205,21 +205,32 @@ Every physical line of every checked document gets one of three
 statuses:
 
 - **covered** -- at least one quote's matched text touches this line.
-- **gap** -- nothing quotes this line, but it contains an RFC
-  2119/8174 normative keyword (`MUST`, `MUST NOT`, `SHALL`, `SHALL NOT`,
-  `SHOULD`, `SHOULD NOT`, `REQUIRED`, `RECOMMENDED`, `OPTIONAL`, `MAY`),
-  so it looks like a requirement nothing implements.
+- **gap** -- nothing quotes this line, but the line is expected to be
+  quoted, so it looks like a requirement nothing implements.
 - **neutral** -- neither: ordinary prose, headers, examples, rationale.
   Not expected to be quoted, so it's never flagged.
 
-The keyword check is deliberately case-sensitive: RFC 8174 limits
-normative force to the all-caps form, which BOLT and most modern RFCs
-follow, and it's also what keeps this quiet on plain English
-"must"/"should" in pre-2119 RFCs and most BIPs, neither of which
-reliably use the convention. (Status is decided per physical line, not
-per sentence, so two different requirements hard-wrapped onto the same
-line can occasionally mask each other -- a deliberate precision/
-simplicity tradeoff.)
+A line is "expected to be quoted" one of two ways:
+
+- If the source's config declares `normative` spans for this document
+  (see above), a line is expected exactly when it falls inside one of
+  them. This is the precise option -- but it means someone (typically
+  an LLM, or a human for a short document) had to name the spans up
+  front, and it's the ground truth for that document once configured:
+  it replaces the keyword guess below entirely, rather than adding to
+  it.
+- Otherwise, it falls back to guessing from an RFC 2119/8174 normative
+  keyword (`MUST`, `MUST NOT`, `SHALL`, `SHALL NOT`, `SHOULD`, `SHOULD
+  NOT`, `REQUIRED`, `RECOMMENDED`, `OPTIONAL`, `MAY`), deliberately
+  case-sensitive: RFC 8174 limits normative force to the all-caps form,
+  which BOLT and most modern RFCs follow, and it's also what keeps this
+  quiet on plain English "must"/"should" in pre-2119 RFCs and most
+  BIPs, neither of which reliably use the convention.
+
+(Either way, status is decided per physical line, not per sentence, so
+two different requirements hard-wrapped onto the same line can
+occasionally mask each other -- a deliberate precision/simplicity
+tradeoff.)
 
 `--format text` (the default) prints one line per annotated line, with
 a 3-character status prefix: `***` for a gap, `+`/`++`/`+++` for a

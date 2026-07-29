@@ -10,15 +10,20 @@ every considered document gets a status --
 
   - "covered": at least one coverage record's matched range touches this
     line (mentions counts how many distinct quotes do).
-  - "gap": no record touches it, but it contains an RFC 2119/8174
-    normative keyword (MUST/SHOULD/MAY/...), so it looks like a
-    requirement that nothing quotes.
+  - "gap": no record touches it, but the line is expected to be quoted,
+    so it looks like a requirement that nothing quotes.
   - "neutral": neither -- ordinary prose, headers, examples, rationale.
 
-The keyword check is deliberately case-sensitive: RFC 8174 limits
-normative force to the all-caps form, which BOLT and most modern RFCs
-follow -- and it's also what keeps this quiet on plain English
-"must"/"should" in pre-2119 RFCs and most BIPs, neither of which
+A line is "expected to be quoted" one of two ways. If the source's
+config declares 'normative' spans for this document (see config.py /
+normative.py), a line is expected exactly when it falls inside one of
+them -- precise, but requires someone (typically an LLM, or a human for
+a short document) to have named the spans up front. Otherwise, it falls
+back to guessing from an RFC 2119/8174 normative keyword
+(MUST/SHOULD/MAY/...). The keyword check is deliberately case-sensitive:
+RFC 8174 limits normative force to the all-caps form, which BOLT and
+most modern RFCs follow -- and it's also what keeps this quiet on plain
+English "must"/"should" in pre-2119 RFCs and most BIPs, neither of which
 reliably use the convention (see README).
 
 Status is decided per physical line, not per sentence: a line is
@@ -43,7 +48,8 @@ from typing import Dict, Iterator, List, Optional, Sequence, Tuple
 from greatspectations import formats
 from greatspectations.config import Config, ConfigError, IdType
 from greatspectations.formats import Section
-from greatspectations.matching import CheckResult, section_linemap, section_text
+from greatspectations.matching import CheckResult, section_linemap
+from greatspectations.normative import NormativeSpan
 
 DocKey = Tuple[str, Optional[IdType]]
 
@@ -175,8 +181,25 @@ def _record_line_range(record: CoverageRecord, linemap: List[int]) -> Tuple[int,
     return (first, last) if first <= last else (last, first)
 
 
+def _line_is_expected(
+    lineno: int, text: str, normative: Optional[Sequence[NormativeSpan]]
+) -> bool:
+    """True if lineno is expected to be quoted by something. Column
+    bounds on a span are ignored here -- like coverage itself, this is
+    decided per whole physical line (see module docstring).
+    """
+    if normative is None:
+        return has_normative_keyword(text)
+    return any(
+        (span.start_line is None or lineno >= span.start_line)
+        and (span.end_line is None or lineno <= span.end_line)
+        for span in normative
+    )
+
+
 def _annotate_section(
     doc_path: str, section: Section, records: Sequence[CoverageRecord], mode: str,
+    normative: Optional[Sequence[NormativeSpan]],
 ) -> List[LineAnnotation]:
     linemap = section_linemap(section, mode)
     mentions_by_line: Dict[int, int] = defaultdict(int)
@@ -190,7 +213,7 @@ def _annotate_section(
         mentions = mentions_by_line.get(lineno, 0)
         if mentions:
             status = "covered"
-        elif has_normative_keyword(text):
+        elif _line_is_expected(lineno, text, normative):
             status = "gap"
         else:
             status = "neutral"
@@ -233,10 +256,13 @@ def build_annotations(
             if 0 <= rec.section_idx < len(doc.sections):
                 by_section[rec.section_idx].append(rec)
 
+        normative = source.normative.get(id_value)
         annotations: List[LineAnnotation] = []
         for si, section in enumerate(doc.sections):
             annotations.extend(
-                _annotate_section(doc.path, section, by_section.get(si, []), mode)
+                _annotate_section(
+                    doc.path, section, by_section.get(si, []), mode, normative
+                )
             )
 
         by_doc[(source_name, id_value)] = annotations
