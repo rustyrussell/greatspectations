@@ -1,7 +1,12 @@
-.PHONY: check examples upload publish
+.PHONY: check check-types ci examples upload publish
 
 check:
 	uv run pytest
+
+check-types:
+	uv run mypy
+
+ci: check check-types
 
 examples:
 	uv run python examples/generate.py
@@ -12,7 +17,7 @@ upload:
 # Refuses unless HEAD is exactly a clean, tagged v<version> commit
 # matching pyproject.toml -- publishing to PyPI can't be undone, so
 # there must be no ambiguity about what's being published.
-publish: check
+publish: ci
 	@if [ -n "$$(git status --porcelain)" ]; then \
 		echo "error: working tree is not clean" >&2; exit 1; \
 	fi
