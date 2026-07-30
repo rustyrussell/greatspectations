@@ -1,13 +1,7 @@
-import importlib.util
-import os
-from argparse import Namespace
-
 import pytest
 
 from greatspectations.config import Config, Source
 from greatspectations.quotes import QuoteSyntaxError, gather_quotes, iter_lines
-
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def make_config(sources) -> Config:
@@ -254,49 +248,3 @@ def test_iter_lines_reads_files(tmp_path):
         (str(f1), 1, "line one\n"),
         (str(f1), 2, "line two\n"),
     ]
-
-
-# --- Backward-compat regression against the legacy check_quotes.py ---
-
-def _load_legacy_check_quotes():
-    path = os.path.join(REPO_ROOT, "check_quotes.py")
-    spec = importlib.util.spec_from_file_location("legacy_check_quotes", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-@pytest.mark.skipif(
-    not os.path.exists(os.path.join(REPO_ROOT, "check_quotes.py")),
-    reason="legacy check_quotes.py has been retired from this repo",
-)
-def test_bolt_marker_matches_legacy_check_quotes(tmp_path):
-    legacy = _load_legacy_check_quotes()
-
-    source_file = tmp_path / "example.c"
-    source_file.write_text(
-        "/* some code */\n"
-        "# BOLT #11: A writer:\n"
-        "#  - MUST set `payment_hash` to the SHA256 of `payment_preimage`.\n"
-        "int x = 1;\n"
-    )
-
-    legacy_args = Namespace(
-        files=[str(source_file)],
-        comment_start="# ",
-        comment_continue="#",
-        comment_end=None,
-        include_commit=[],
-    )
-    legacy_quotes = legacy.gather_quotes(legacy_args)
-    assert list(legacy_quotes.keys()) == [11]
-    legacy_text = legacy_quotes[11][0].text
-
-    config = make_config([bolt_source()])
-    new_quotes = gather_quotes(config, iter_lines([str(source_file)]))
-
-    assert len(new_quotes) == 1
-    assert new_quotes[0].source == "bolt"
-    assert new_quotes[0].id == 11
-    assert new_quotes[0].text == legacy_text
