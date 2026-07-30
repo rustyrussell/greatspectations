@@ -167,6 +167,35 @@ def test_check_without_keep_going_stops_at_first_failure(tmp_path):
     assert result.stderr.count("cannot find match") == 1
 
 
+def test_check_syntax_error_stops_run_without_keep_going(tmp_path):
+    source = write_source(
+        tmp_path, "example.c",
+        "# BOLT #11 no colon here\n"
+        "# BOLT #11: A writer:\n"
+        "#  - MUST set `payment_hash` to the SHA256 of `payment_preimage`.\n",
+    )
+    result = run_greatspectate(["check", "--config", CONFIG, source])
+    assert result.returncode == 1
+    assert "expected ':'" in result.stderr
+    # Never got to check the valid quote below the bad line.
+    assert "Matched" not in result.stdout
+
+
+def test_check_keep_going_reports_syntax_errors_and_still_checks_rest(tmp_path):
+    source = write_source(
+        tmp_path, "example.c",
+        "# BOLT #11 no colon here\n"
+        "# BOLT #11: A writer:\n"
+        "#  - MUST set `payment_hash` to the SHA256 of `payment_preimage`.\n",
+    )
+    result = run_greatspectate(
+        ["check", "--config", CONFIG, "-k", "-v", source]
+    )
+    assert result.returncode == 1
+    assert "expected ':'" in result.stderr
+    assert "Matched" in result.stdout
+
+
 def test_check_json_format(tmp_path):
     source = write_source(
         tmp_path, "example.c",

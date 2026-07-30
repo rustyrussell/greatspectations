@@ -10,7 +10,7 @@ from greatspectations.config import load as load_config
 from greatspectations.coverage import CoverageError, build_annotations
 from greatspectations.coverage import write_coverage as append_coverage
 from greatspectations.matching import MatchingError, check_quotes
-from greatspectations.quotes import QuoteSyntaxError, gather_quotes, iter_lines
+from greatspectations.quotes import gather_quotes, iter_lines
 from greatspectations.report import html_filename, render_html, render_json, render_text
 
 
@@ -37,7 +37,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     config = _load_config_or_die(args.config)
 
     try:
-        quotes = gather_quotes(
+        quotes, syntax_errors = gather_quotes(
             config,
             iter_lines(args.files),
             comment_start=args.comment_start,
@@ -45,10 +45,8 @@ def cmd_check(args: argparse.Namespace) -> int:
             comment_end=args.comment_end,
             comment_aside=args.comment_aside,
             include_commit=args.include_commit,
+            keep_going=args.keep_going,
         )
-    except QuoteSyntaxError as e:
-        print(str(e), file=sys.stderr)
-        return 1
     except OSError as e:
         print("error: {}".format(e), file=sys.stderr)
         return 1
@@ -84,10 +82,16 @@ def cmd_check(args: argparse.Namespace) -> int:
                 }
                 for r in results
             ],
+            "syntax_errors": [
+                {"file": se.filename, "line": se.line, "error": se.message}
+                for se in syntax_errors
+            ],
             "summary": {"total": len(results), "failed": len(failed)},
         }
         print(json.dumps(payload, indent=2))
     else:
+        for se in syntax_errors:
+            print(str(se), file=sys.stderr)
         for r in results:
             if not r.ok:
                 print(
@@ -111,7 +115,7 @@ def cmd_check(args: argparse.Namespace) -> int:
                     )
                 )
 
-    return 1 if failed else 0
+    return 1 if (failed or syntax_errors) else 0
 
 
 def cmd_coverage(args: argparse.Namespace) -> int:

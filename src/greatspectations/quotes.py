@@ -140,9 +140,17 @@ def gather_quotes(
     comment_end: Optional[str] = None,
     comment_aside: Optional[str] = None,
     include_commit: Sequence[str] = (),
-) -> List[Quote]:
-    """Scan (filename, linenum, raw_line) triples for marker-quotes."""
+    keep_going: bool = False,
+) -> Tuple[List[Quote], List[QuoteSyntaxError]]:
+    """Scan (filename, linenum, raw_line) triples for marker-quotes.
+
+    Returns (quotes, errors). By default (keep_going=False), scanning
+    stops at the first malformed marker line, so errors holds at most
+    one QuoteSyntaxError. With keep_going=True, scanning continues
+    past each malformed marker line, collecting every error found.
+    """
     quotes: List[Quote] = []
+    errors: List[QuoteSyntaxError] = []
     cur: Optional[dict] = None
 
     def flush() -> None:
@@ -162,9 +170,16 @@ def gather_quotes(
 
     for filename, linenum, raw_line in lines:
         line = raw_line.strip()
-        parsed = _parse_marker_line(
-            config, line, comment_start, include_commit, filename, linenum
-        )
+        try:
+            parsed = _parse_marker_line(
+                config, line, comment_start, include_commit, filename, linenum
+            )
+        except QuoteSyntaxError as e:
+            errors.append(e)
+            flush()
+            if not keep_going:
+                break
+            continue
         if parsed is not None:
             source_name, id_value, hint, text = parsed
             flush()
@@ -200,7 +215,7 @@ def gather_quotes(
                 flush()
 
     flush()
-    return quotes
+    return quotes, errors
 
 
 def iter_lines(files: Sequence[str]) -> Iterator[Tuple[str, int, str]]:
