@@ -70,7 +70,7 @@ wheels = [
 
 [[package]]
 name = "greatspectations"
-version = "0.2.2"
+version = "0.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "tomli", marker = "python_full_version < '3.11'" },
