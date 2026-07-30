@@ -1,10 +1,15 @@
 import glob
 import os
-import tomllib
+import sys
 from dataclasses import dataclass, field, replace
 from typing import Dict, List, Optional, Union
 
 from greatspectations.normative import NormativeSpan, PlaceSyntaxError, parse_normative
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 IdType = Union[int, str]
 
